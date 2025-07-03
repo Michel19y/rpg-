@@ -2,12 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, Image, ActivityIndicator } from 'react-native';
 import { collection, query, getDocs } from 'firebase/firestore';
 import { db } from '../Firebase';
-import styles from '../estilos/read'; // Certifique-se que esse caminho está certo
+import styles from '../estilos/read';
 import { FontAwesome5, MaterialIcons } from '@expo/vector-icons';
 
 export default function TelaRead() {
   const [monstrosSalvos, setMonstrosSalvos] = useState([]);
-  const [loading, setLoading] = useState(true); // novo estado
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     read();
@@ -19,21 +19,21 @@ export default function TelaRead() {
       const querySnapshot = await getDocs(q);
       let todosMonstros = [];
 
-      querySnapshot.forEach((usuarioDoc) => {
+      for (const usuarioDoc of querySnapshot.docs) {
+        const email = usuarioDoc.data().email;
         const subcolecao = collection(usuarioDoc.ref, 'monsters');
-        todosMonstros.push(getDocs(subcolecao));
-      });
+        const snapshot = await getDocs(subcolecao);
 
-      const snapshots = await Promise.all(todosMonstros);
-      const monstros = snapshots.flatMap(snapshot =>
-        snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-      );
+        snapshot.forEach((doc) => {
+          todosMonstros.push({ id: doc.id, ...doc.data(), email });
+        });
+      }
 
-      setMonstrosSalvos(monstros);
+      setMonstrosSalvos(todosMonstros);
     } catch (error) {
       console.error('Erro ao ler monstros:', error);
     } finally {
-      setLoading(false); // encerra o carregamento
+      setLoading(false);
     }
   };
 
@@ -58,7 +58,7 @@ export default function TelaRead() {
       </View>
 
       <Text style={styles.subtitulo}>
-        <FontAwesome5 name="hand-rock" size={14} color="#a29bfe" /> Ação principal
+        <FontAwesome5 name="hand-rock" size={14} color="#a29bfe" /> Ação principal de {item.email}
       </Text>
       <Text style={styles.acao}>{item.main_action?.name || 'Sem ação'}</Text>
       <Text style={styles.desc}>{item.main_action?.desc || 'Sem descrição.'}</Text>
@@ -89,4 +89,3 @@ export default function TelaRead() {
     </View>
   );
 }
-
