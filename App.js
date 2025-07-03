@@ -5,12 +5,11 @@ import Routes from './Routes';
 export default function App() {
   return (
     <>
-      <StatusBar style="auto" />
+      <StatusBar style="light" backgroundColor="#1a001f" translucent={false} />
       <Routes />
     </>
   );
 }
-
 
 const styles = StyleSheet.create({
   container: {

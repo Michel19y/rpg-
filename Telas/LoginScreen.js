@@ -5,6 +5,7 @@ import {
   TextInput,
   TouchableOpacity,
   Modal,
+  StatusBar,
   Pressable,
 } from 'react-native';
 import { signInWithEmailAndPassword } from 'firebase/auth';
@@ -72,6 +73,7 @@ export default function LoginScreen({ navigation }) {
 
   return (
     <View style={estilos.container}>
+      <StatusBar></StatusBar>
       <Text style={estilos.title}>Círculo da Necromancia</Text>
 
       <TextInput

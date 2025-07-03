@@ -1,30 +1,31 @@
 import React, { useState, useEffect } from 'react';
-import { View, FlatList, TouchableOpacity, Text, Image, StyleSheet } from 'react-native';
+import {View,FlatList,Animated,Easing,TouchableOpacity,Text,Image,Dimensions,TextInput,Modal} from 'react-native';
 import { auth } from '../Firebase';
-import {
-  getFirestore,
-  collection,
-  doc,
-  setDoc,
-  getDocs,
-  query,
-  deleteDoc
-} from 'firebase/firestore';
+import {getFirestore,collection,doc,setDoc,getDocs,deleteDoc} from 'firebase/firestore';
 import styles from '../estilos/welcome';
 import { FontAwesome5 } from '@expo/vector-icons';
+
+const { width } = Dimensions.get('window');
+
+
+const normalize = (text) =>
+  text
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase();
 
 export default function WelcomeScreen({ navigation }) {
   const [monstros, setMonstros] = useState([]);
   const [selecionados, setSelecionados] = useState([]);
   const [monstrosSalvos, setMonstrosSalvos] = useState([]);
-
-  // Modal erro antigo
   const [modalErroVisible, setModalErroVisible] = useState(false);
   const [mensagemErro, setMensagemErro] = useState('');
-
-  // Modal confirmação delete
   const [modalDeleteVisible, setModalDeleteVisible] = useState(false);
   const [monstroParaExcluir, setMonstroParaExcluir] = useState(null);
+  const [carregando, setCarregando] = useState(true);
+  const [termoBusca, setTermoBusca] = useState('');
+  const scrollX = useState(new Animated.Value(0))[0];
+  const animacao = useState(new Animated.Value(1))[0];
 
   const db = getFirestore();
 
@@ -34,6 +35,23 @@ export default function WelcomeScreen({ navigation }) {
   };
 
   useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(animacao, {
+          toValue: 1.4,
+          duration: 700,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true
+        }),
+        Animated.timing(animacao, {
+          toValue: 1,
+          duration: 700,
+          easing: Easing.inOut(Easing.ease),
+          useNativeDriver: true
+        })
+      ])
+    ).start();
+
     const unsubscribe = auth.onAuthStateChanged((user) => {
       if (!user) {
         exibirErro('Desvinculado Arcano. Saída Concluída.');
@@ -42,6 +60,7 @@ export default function WelcomeScreen({ navigation }) {
         fetchMonstrosSalvos(user);
       }
     });
+
     return unsubscribe;
   }, []);
 
@@ -49,74 +68,87 @@ export default function WelcomeScreen({ navigation }) {
     try {
       const res = await fetch('https://www.dnd5eapi.co/api/monsters');
       const data = await res.json();
-      const monstrosComDetalhes = await Promise.all(
-        data.results.slice(0, 20).map(async (monster) => {
-          const resDetalhes = await fetch(`https://www.dnd5eapi.co${monster.url}`);
-          const detalhes = await resDetalhes.json();
+      const detalhados = await Promise.all(
+        data.results.slice(0, 20000).map(async (monster) => {
+          const resD = await fetch(`https://www.dnd5eapi.co${monster.url}`);
+          const det = await resD.json();
           return {
             index: monster.index,
             name: monster.name,
-            hit_points: detalhes.hit_points || 0,
-            armor_class: Array.isArray(detalhes.armor_class)
-              ? detalhes.armor_class[0]?.value || 0
-              : detalhes.armor_class || 0,
-            main_action: detalhes.actions?.[0] || { name: 'Nenhuma ação', desc: '' }
+            hit_points: det.hit_points || 0,
+            armor_class: Array.isArray(det.armor_class)
+              ? det.armor_class[0]?.value || 0
+              : det.armor_class || 0,
+            main_action: det.actions?.[0] || { name: 'Nenhuma ação', desc: '' }
           };
         })
       );
-      setMonstros(monstrosComDetalhes);
-    } catch (error) {
-      exibirErro('Falha arcana ao carregar os monstros. Tente novamente mais tarde.');
+      setMonstros(detalhados);
+    } catch {
+      exibirErro('Falha arcana ao carregar os monstros.');
+    } finally {
+      setCarregando(false);
     }
   };
 
   const fetchMonstrosSalvos = async (user) => {
     try {
-      const userDocRef = doc(db, 'usuarios', user.uid);
-      const monstrosQuery = query(collection(userDocRef, 'monsters'));
-      const querySnapshot = await getDocs(monstrosQuery);
-      const monstros = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setMonstrosSalvos(monstros);
-    } catch (error) {
+      const userRef = doc(db, 'usuarios', user.uid);
+      const snap = await getDocs(collection(userRef, 'monsters'));
+      const salvos = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      setMonstrosSalvos(salvos);
+    } catch {
       exibirErro('A biblioteca de invocações não pôde ser acessada.');
     }
   };
 
-  const handleSelectMonster = (monster) => {
-    if (selecionados.includes(monster.index)) {
-      setSelecionados(selecionados.filter(index => index !== monster.index));
-    } else if (selecionados.length < 3) {
-      setSelecionados([...selecionados, monster.index]);
+  const handleSelectMonster = (m) => {
+    const jaSelecionado = selecionados.includes(m.index);
+    
+    if (jaSelecionado) {
+      // Desmarca o monstro
+      setSelecionados(selecionados.filter(i => i !== m.index));
     } else {
-      exibirErro('Você já possui 3 feras mágicas. Libere espaço para novas invocações.');
+      const totalSelecionados = selecionados.length + monstrosSalvos.length;
+      if (totalSelecionados >= 3) {
+        exibirErro('Você já possui 3 feras mágicas. Libere espaço.');
+        return;
+      }
+      setSelecionados([...selecionados, m.index]);
     }
   };
+  
 
   const handleSaveMonsters = async () => {
     const user = auth.currentUser;
     if (!user) return;
   
-    if (monstrosSalvos.length >= 3) {
-      exibirErro('Já existem 3 monstros guardados. Elimine algum para prosseguir.');
+    const total = monstrosSalvos.length + selecionados.length;
+    if (total > 3) {
+      exibirErro(`Você só pode ter no máximo 3 feras. Atual: ${monstrosSalvos.length} salvos, ${selecionados.length} novos.`);
       return;
     }
   
-    const userDocRef = doc(db, 'usuarios', user.uid);
-    const monstersRef = collection(userDocRef, 'monsters');
+    if (selecionados.length === 0) {
+      exibirErro('Nenhuma fera mágica selecionada.');
+      return;
+    }
   
-    const monstrosSelecionados = monstros.filter(m => selecionados.includes(m.index));
+    const userRef = doc(db, 'usuarios', user.uid);
+    const monstersRef = collection(userRef, 'monsters');
+    const toSave = monstros.filter(m => selecionados.includes(m.index));
   
-    for (let i = 0; i < monstrosSelecionados.length; i++) {
-      const monster = monstrosSelecionados[i];
-      // Cria o ID baseado no nome, em lowercase e sem espaços
-      const novoID = monster.name.toLowerCase().replace(/\s+/g, '_');
+    for (let m of toSave) {
+      const nameKey = m.name.toLowerCase().replace(/\s+/g, '_');
+      const uniqueId = `${nameKey}_${Date.now()}`;
   
-      await setDoc(doc(monstersRef, novoID), {
-        index: monster.index,
-        name: monster.name,
-        hit_points: monster.hit_points,
-        armor_class: monster.armor_class,
-        main_action: monster.main_action,
+      await setDoc(doc(monstersRef, uniqueId), {
+        index: m.index,
+        name: m.name,
+        nameKey: nameKey,
+        hit_points: m.hit_points,
+        armor_class: m.armor_class,
+        main_action: m.main_action,
         userId: user.uid,
         timestamp: new Date()
       });
@@ -126,10 +158,8 @@ export default function WelcomeScreen({ navigation }) {
     await fetchMonstrosSalvos(user);
   };
   
-
-  // Abrir modal para confirmar exclusão
-  const abrirModalExcluir = (monstro) => {
-    setMonstroParaExcluir(monstro);
+  const abrirModalExcluir = (m) => {
+    setMonstroParaExcluir(m);
     setModalDeleteVisible(true);
   };
 
@@ -149,7 +179,11 @@ export default function WelcomeScreen({ navigation }) {
 
   const renderMonster = ({ item }) => (
     <TouchableOpacity
-      style={[styles.card, selecionados.includes(item.index) && styles.cardSelecionado]}
+      style={[
+        styles.card,
+        selecionados.includes(item.index) && styles.cardSelecionado,
+        { width: width * 0.6 }
+      ]}
       onPress={() => handleSelectMonster(item)}
     >
       <Image
@@ -157,8 +191,15 @@ export default function WelcomeScreen({ navigation }) {
         style={styles.imagem}
         resizeMode="contain"
       />
-      <Text style={styles.nome}>{item.name}</Text>
+      <Text style={styles.nome} numberOfLines={1}>{item.name}</Text>
       <Text style={styles.stat}>CA: {item.armor_class} | HP: {item.hit_points}</Text>
+
+      <TouchableOpacity
+        onPress={() => navigation.navigate('Infos', { index: item.index })}
+        style={{ position: 'absolute', top: 10, right: 10 }}
+      >
+        <FontAwesome5 name="eye" size={20} color="#b9f2ff" />
+      </TouchableOpacity>
     </TouchableOpacity>
   );
 
@@ -172,84 +213,137 @@ export default function WelcomeScreen({ navigation }) {
       <View style={{ flex: 1 }}>
         <Text style={styles.nome}>{item.name}</Text>
         <Text style={styles.stat}>CA: {item.armor_class} | HP: {item.hit_points}</Text>
-        <Text style={styles.desc}>{item.main_action?.name}: {item.main_action?.desc}</Text>
+        <Text style={styles.desc} numberOfLines={2}>
+          {item.main_action?.name || 'Sem ação'}: {item.main_action?.desc || 'Sem descrição'}
+        </Text>
       </View>
-      <TouchableOpacity onPress={() => abrirModalExcluir(item)}>
-        <FontAwesome5 name="trash" size={20} color="#ff5555" />
-      </TouchableOpacity>
+      <View style={{ gap: 10 }}>
+        <TouchableOpacity onPress={() => navigation.navigate('Infos', { index: item.index })}>
+          <FontAwesome5 name="eye" size={20} color="#b9f2ff" />
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => abrirModalExcluir(item)}>
+          <FontAwesome5 name="trash" size={20} color="#ff5555" />
+        </TouchableOpacity>
+      </View>
     </View>
   );
 
+  // Filtro atualizado para ignorar acentos e case-sensitive
+  const monstrosFiltrados = monstros.filter(m =>
+    normalize(m.name).includes(normalize(termoBusca))
+  );
+
+  if (carregando) {
+    return (
+      <View style={styles.containerCarregamento}>
+        <View style={styles.orbe}>
+          <Animated.View style={[styles.luzOrbe, { transform: [{ scale: animacao }] }]} />
+        </View>
+        <Text style={styles.textoCarregando}>Invocando bestiário...</Text>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.container}>
-      <Text style={styles.titulo}>Escolha seus Monstros</Text>
-      <FlatList
-        data={monstros}
-        renderItem={renderMonster}
-        keyExtractor={(item) => item.index}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-      />
-
-      <TouchableOpacity style={styles.botao} onPress={handleSaveMonsters}>
-        <Text style={styles.botaoTexto}>SALVAR INVOCAÇÃO</Text>
-      </TouchableOpacity>
-
-      <Text style={styles.subtitulo}>Invocações Atuais</Text>
       <FlatList
         data={monstrosSalvos}
         renderItem={renderSavedMonster}
         keyExtractor={(item) => item.id}
+        contentContainerStyle={{ paddingBottom: 20 }}
+        ListHeaderComponent={
+          <>
+            <TextInput
+              placeholder="🔍 Buscar Monstro..."
+              placeholderTextColor="#999"
+              value={termoBusca}
+              onChangeText={setTermoBusca}
+              style={styles.inputBusca}
+            />
+
+            <Text style={styles.titulo}>Escolha seus Monstros</Text>
+
+            {monstrosFiltrados.length > 0 ? (
+              <Animated.FlatList
+                data={monstrosFiltrados}
+                renderItem={(props) => (
+                  <Animated.View style={{ marginRight: 10 }}>
+                    {renderMonster(props)}
+                  </Animated.View>
+                )}
+                keyExtractor={(item) => item.index}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                onScroll={Animated.event(
+                  [{ nativeEvent: { contentOffset: { x: scrollX } } }],
+                  { useNativeDriver: true }
+                )}
+                scrollEventThrottle={16}
+              />
+            ) : (
+              <Text
+                style={{
+                  color: '#aaa',
+                  textAlign: 'center',
+                  marginVertical: 20,
+                  fontStyle: 'italic'
+                }}
+              >
+                🧙‍♂️ Nenhum monstro encontrado para "{termoBusca}".
+              </Text>
+            )}
+
+            <TouchableOpacity style={styles.botao} onPress={handleSaveMonsters}>
+              <Text style={styles.botaoTexto}>SALVAR INVOCAÇÃO</Text>
+            </TouchableOpacity>
+
+            <Text style={styles.subtitulo}>Invocações Atuais</Text>
+          </>
+        }
       />
 
-      {/* Modal de erro antigo */}
-      {modalErroVisible && (
+      {/* Modal de Erro */}
+      <Modal visible={modalErroVisible} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Invocação Interrompida</Text>
+            <Text style={styles.modalTitle}>Aviso Arcano</Text>
             <Text style={styles.modalMensagem}>{mensagemErro}</Text>
             <TouchableOpacity
-              onPress={() => setModalErroVisible(false)}
               style={styles.modalBotao}
+              onPress={() => setModalErroVisible(false)}
             >
-              <Text style={{ color: '#fff', fontWeight: 'bold' }}>Fechar</Text>
+              <Text style={{ color: '#fff' }}>Fechar</Text>
             </TouchableOpacity>
           </View>
         </View>
-      )}
+      </Modal>
 
-      {/* Modal de confirmação de exclusão */}
-      {modalDeleteVisible && monstroParaExcluir && (
+      {/* Modal de Exclusão */}
+      <Modal visible={modalDeleteVisible} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>Confirmar Exílio</Text>
-            <Image
-              source={{ uri: `https://www.dnd5eapi.co/api/images/monsters/${monstroParaExcluir.index}.png` }}
-              style={{ width: 100, height: 100, alignSelf: 'center', marginBottom: 12 }}
-              resizeMode="contain"
-            />
-            <Text style={[styles.modalMensagem, { fontWeight: 'bold', marginBottom: 20, textAlign: 'center' }]}>
-              Deseja exilar o {monstroParaExcluir.name}?
-            </Text>
+            <Text style={styles.modalTitle}>Confirmação de Exclusão</Text>
+            <Text style={styles.modalMensagem}>
+  {monstroParaExcluir
+    ? `Deseja exilar o ${monstroParaExcluir.name}?`
+    : 'Nenhum monstro selecionado.'}
+</Text>
 
-            <View style={{ flexDirection: 'row', justifyContent: 'space-around' }}>
-              <TouchableOpacity
-                onPress={() => setModalDeleteVisible(false)}
-                style={[styles.modalBotao, { backgroundColor: '#555', flex: 1, marginRight: 10 }]}
-              >
-                <Text style={{ color: '#fff', fontWeight: 'bold', textAlign: 'center' }}>Cancelar</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={confirmarExcluirMonstro}
-                style={[styles.modalBotao, { backgroundColor: '#b22222', flex: 1 }]}
-              >
-                <Text style={{ color: '#fff', fontWeight: 'bold', textAlign: 'center' }}>Exilar</Text>
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity
+              style={[styles.modalBotao, { marginBottom: 10 }]}
+              onPress={confirmarExcluirMonstro}
+            >
+              <Text style={{ color: '#fff' }}>Sim, Banir</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.modalBotao}
+              onPress={() => setModalDeleteVisible(false)}
+            >
+              <Text style={{ color: '#fff' }}>Cancelar</Text>
+            </TouchableOpacity>
           </View>
         </View>
-      )}
+      </Modal>
     </View>
   );
 }

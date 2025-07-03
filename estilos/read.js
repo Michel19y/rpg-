@@ -97,7 +97,60 @@ const styles = StyleSheet.create({
       color: '#cccccc',
       marginTop: 4,
       fontStyle: 'italic',
+    },donoText: {
+      fontSize: 12,
+      color: '#666',
+      marginTop: 8,
+      fontStyle: 'italic'
+    },filterButton: {
+      backgroundColor: '#444',
+      paddingVertical: 6,
+      paddingHorizontal: 12,
+      borderRadius: 20,
+      marginRight: 8,
     },
+    
+    filterButtonSelected: {
+      backgroundColor: '#b9f2ff',
+      
+    },
+    
+    
+    filterButton: {
+      backgroundColor: '#444',
+      paddingVertical: 6,
+      height:40,
+      paddingHorizontal: 12,
+      borderRadius: 20,
+      marginRight: 8,
+    },
+    
+    filterButtonSelected: {
+      backgroundColor: '#b9f2ff',
+    },
+    
+    filterButtonText: {
+      color: '#fff',
+      fontSize: 14,
+    },
+    
+    filterButtonTextSelected: {
+      color: '#222',
+      fontWeight: 'bold',
+    },
+    
+    
+    filterButtonText: {
+      color: '#fff',
+      fontSize: 14,
+    },
+    
+    filterButtonTextSelected: {
+      color: '#222',
+      fontWeight: 'bold',
+    },
+    
+    
   });
   
   export default styles;

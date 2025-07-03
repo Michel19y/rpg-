@@ -69,17 +69,17 @@ export default function SobreScreen() {
 
           <Text style={styles.section}>Funcionalidades</Text>
           <Text style={styles.paragraph}>• Cadastro e login com autenticação Firebase</Text>
-          <Text style={styles.paragraph}>• Escolha de classe e raça do personagem</Text>
+          <Text style={styles.paragraph}>• Escolha de classe e raça das criaturas</Text>
           <Text style={styles.paragraph}>• Dashboard de personagens com magias</Text>
           <Text style={styles.paragraph}>• Batalhas contra monstros da D&D API</Text>
-          <Text style={styles.paragraph}>• Magias com dados reais (ex: Fireball, Magic Missile)</Text>
+          <Text style={styles.paragraph}>• Ataques com dados reais (ex: atk, Magic evasive)</Text>
           <Text style={styles.paragraph}>• Estilo visual necromante e dark fantasy</Text>
 
           <Text style={styles.section}>Tecnologias Utilizadas</Text>
           <Text style={styles.paragraph}>• React Native + Expo</Text>
           <Text style={styles.paragraph}>• Firebase Authentication e Firestore</Text>
           <Text style={styles.paragraph}>• Consumo da API pública D&D 5e</Text>
-          <Text style={styles.paragraph}>• HTML/CSS para telas auxiliares</Text>
+          <Text style={styles.paragraph}>• react  para telas auxiliares</Text>
 
           <Text style={styles.section}>Objetivo</Text>
           <Text style={styles.paragraph}>
