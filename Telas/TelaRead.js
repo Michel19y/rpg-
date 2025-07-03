@@ -1,13 +1,23 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, Image, ActivityIndicator } from 'react-native';
+import {
+  View,
+  Text,
+  FlatList,
+  Image,
+  ActivityIndicator,
+  TouchableOpacity,
+  ScrollView,
+} from 'react-native';
 import { collection, query, getDocs } from 'firebase/firestore';
 import { db } from '../Firebase';
-import styles from '../estilos/read'; // Certifique-se que esse caminho está certo
+import styles from '../estilos/read';
 import { FontAwesome5, MaterialIcons } from '@expo/vector-icons';
 
-export default function TelaRead() {
+export default function TelaRead({ navigation }) {
   const [monstrosSalvos, setMonstrosSalvos] = useState([]);
-  const [loading, setLoading] = useState(true); // novo estado
+  const [loading, setLoading] = useState(true);
+  const [donos, setDonos] = useState([]);
+  const [donosSelecionados, setDonosSelecionados] = useState(new Set());
 
   useEffect(() => {
     read();
@@ -18,29 +28,59 @@ export default function TelaRead() {
       const q = query(collection(db, 'usuarios'));
       const querySnapshot = await getDocs(q);
       let todosMonstros = [];
+      let listaDonos = new Set();
 
-      querySnapshot.forEach((usuarioDoc) => {
-        const subcolecao = collection(usuarioDoc.ref, 'monsters');
-        todosMonstros.push(getDocs(subcolecao));
-      });
+      for (const usuarioDoc of querySnapshot.docs) {
+        const usuarioData = usuarioDoc.data();
+        const email = usuarioData.email || 'Desconhecido';
+        const subcolecaoRef = collection(usuarioDoc.ref, 'monsters');
+        const snapshot = await getDocs(subcolecaoRef);
 
-      const snapshots = await Promise.all(todosMonstros);
-      const monstros = snapshots.flatMap(snapshot =>
-        snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }))
-      );
+        snapshot.forEach((doc) => {
+          const monstro = {
+            id: doc.id,
+            ...doc.data(),
+            dono: email,
+          };
+          todosMonstros.push(monstro);
+          listaDonos.add(email);
+        });
+      }
 
-      setMonstrosSalvos(monstros);
+      setMonstrosSalvos(todosMonstros);
+      setDonos(Array.from(listaDonos));
     } catch (error) {
       console.error('Erro ao ler monstros:', error);
     } finally {
-      setLoading(false); // encerra o carregamento
+      setLoading(false);
     }
   };
+
+  const toggleDono = (dono) => {
+    const novosSelecionados = new Set(donosSelecionados);
+    if (novosSelecionados.has(dono)) {
+      novosSelecionados.delete(dono);
+    } else {
+      novosSelecionados.add(dono);
+    }
+    setDonosSelecionados(novosSelecionados);
+  };
+
+  const limparFiltro = () => {
+    setDonosSelecionados(new Set());
+  };
+
+  const monstrosFiltrados =
+    donosSelecionados.size > 0
+      ? monstrosSalvos.filter((m) => donosSelecionados.has(m.dono))
+      : monstrosSalvos;
 
   const renderSavedMonster = ({ item }) => (
     <View style={styles.card}>
       <Image
-        source={{ uri: `https://www.dnd5eapi.co/api/images/monsters/${item.index}.png` }}
+        source={{
+          uri: `https://www.dnd5eapi.co/api/images/monsters/${item.index}.png`,
+        }}
         style={styles.imagem}
         resizeMode="contain"
       />
@@ -53,7 +93,15 @@ export default function TelaRead() {
         </View>
         <View style={styles.statItem}>
           <FontAwesome5 name="heart" size={18} color="#ff6b6b" />
-          <Text style={styles.statText}>HP: {item.hit_points}</Text>
+          <Text style={styles.statText}>
+            HP: {item.hit_points}{' '}
+            <TouchableOpacity
+              style={styles.eyeButton}
+              onPress={() => navigation.navigate('Infos', { index: item.index })}
+            >
+              <FontAwesome5 name="eye" size={20} color="#b9f2ff" marginLeft="23" />
+            </TouchableOpacity>
+          </Text>
         </View>
       </View>
 
@@ -62,17 +110,23 @@ export default function TelaRead() {
       </Text>
       <Text style={styles.acao}>{item.main_action?.name || 'Sem ação'}</Text>
       <Text style={styles.desc}>{item.main_action?.desc || 'Sem descrição.'}</Text>
+
+      <Text style={styles.donoText}>
+        <FontAwesome5 name="user-alt" size={14} color="#b9f2ff" /> Dono: {item.dono}
+      </Text>
     </View>
   );
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>📜 Invocações do Círculo</Text>
+      <Text style={styles.title}>
+        <FontAwesome5 name="book" size={24} color="#b9f2ff" /> Invocações do Círculo
+      </Text>
 
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#b9f2ff" />
-          <Text style={styles.loadingText}>Carregando monstros do grimório...</Text>
+          <Text style={styles.loadingText}>Carregando grimório...</Text>
         </View>
       ) : monstrosSalvos.length === 0 ? (
         <View style={styles.emptyContainer}>
@@ -80,13 +134,49 @@ export default function TelaRead() {
           <Text style={styles.emptyText}>Nenhum monstro foi invocado ainda...</Text>
         </View>
       ) : (
-        <FlatList
-          data={monstrosSalvos}
-          keyExtractor={(item) => item.id}
-          renderItem={renderSavedMonster}
-        />
+        <>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={{ marginVertical: 10 }}
+          >
+            {donos.map((dono) => (
+              <TouchableOpacity
+                key={dono}
+                style={[
+                  styles.filterButton,
+                  donosSelecionados.has(dono) && styles.filterButtonSelected,
+                ]}
+                onPress={() => toggleDono(dono)}
+              >
+                <Text
+                  style={[
+                    styles.filterButtonText,
+                    donosSelecionados.has(dono) && styles.filterButtonTextSelected,
+                  ]}
+                >
+                  {dono}
+                </Text>
+              </TouchableOpacity>
+            ))}
+
+            {donosSelecionados.size > 0 && (
+              <TouchableOpacity
+                style={[styles.filterButton, { backgroundColor: '#e74c3c' }]}
+                onPress={limparFiltro}
+              >
+                <Text style={{ color: '#fff', fontWeight: 'bold' }}>Limpar</Text>
+              </TouchableOpacity>
+            )}
+          </ScrollView>
+
+          <FlatList
+            data={monstrosFiltrados}
+            keyExtractor={(item) => item.id}
+            renderItem={renderSavedMonster}
+          />
+        </>
       )}
     </View>
   );
 }
-

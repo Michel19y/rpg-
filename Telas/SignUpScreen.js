@@ -7,6 +7,7 @@ import {
   Modal,
   Pressable,
 } from 'react-native';
+import Icon from 'react-native-vector-icons/FontAwesome5';
 import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
 import { getFirestore, doc, setDoc } from 'firebase/firestore';
 import estilos from '../estilos/login'; // Ajuste o caminho conforme necessário
@@ -50,29 +51,32 @@ export default function SignUpScreen({ navigation }) {
       exibirModal('Erro Arcano', 'Preencha todos os campos para invocar um novo necromante!');
       return;
     }
-
+  
+    if (senha.length < 6) {
+      exibirModal('Proteção Mágica', 'Sua senha mística deve ter no mínimo 6 runas.');
+      return;
+    }
+  
     if (senha !== confirmarSenha) {
       exibirModal('Erro Arcano', 'As senhas não coincidem no círculo místico!');
       return;
     }
-
+  
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, senha);
       const user = userCredential.user;
-
-      // Salva o uid e e-mail do usuário no Firestore, consistente com WelcomeScreen
+  
       const userDocRef = doc(db, 'usuarios', user.uid);
       await setDoc(userDocRef, { email: user.email }, { merge: true });
-
+  
       exibirModal('Invocação Concluída', 'Novo necromante registrado no Círculo da Necromancia!');
-      // Opcional: após fechar o modal, navegar para login
-      // Pode usar um efeito ou botão dentro do modal, aqui deixei só o modal mesmo
     } catch (error) {
       console.error('Erro ao criar usuário:', error.message, error.stack);
       const mensagemTematica = traduzirErroFirebase(error.code);
       exibirModal('Erro Arcano', `Falha ao invocar novo necromante: ${mensagemTematica}`);
     }
   };
+  
 
   return (
     <View style={estilos.container}>
