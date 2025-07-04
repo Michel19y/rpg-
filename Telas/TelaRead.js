@@ -1,13 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import {
-  View,
-  Text,
-  FlatList,
-  Image,
-  ActivityIndicator,
-  TouchableOpacity,
-  ScrollView,
-} from 'react-native';
+import {View,Text,FlatList,Image,ActivityIndicator,TouchableOpacity,ScrollView,} from 'react-native';
 import { collection, query, getDocs } from 'firebase/firestore';
 import { db } from '../Firebase';
 import styles from '../estilos/read';

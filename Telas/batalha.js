@@ -146,10 +146,13 @@ export default function TelaArenaBatalha({ route }) {
     return (
       <View style={{ height: 10, width: '100%', backgroundColor: '#555', borderRadius: 5, overflow: 'hidden', marginVertical: 5 }}>
         <View style={{
-          height: 10,
+          height: 23,
           width: `${progress * 100}%`,
-          backgroundColor: '#e94560',
-        }} />
+          backgroundColor: 'red',
+        }}>
+
+          </View>
+ 
       </View>
     );
   };

@@ -28,7 +28,12 @@ export default function SignUpScreen({ navigation }) {
   const traduzirErroFirebase = (codigo) => {
     switch (codigo) {
       case 'auth/email-already-in-use':
-        return 'Este grimório já foi tomado por outro necromante.';
+        return (
+          <>
+            Este grimório já foi tomado por outro necromante. Deseja{' '}
+            <Text style={{ color: '#b9f2ff' }}>entrar</Text> com esta conta?
+          </>
+        );
       case 'auth/invalid-email':
         return 'O endereço arcano inserido não é válido.';
       case 'auth/weak-password':
@@ -51,32 +56,30 @@ export default function SignUpScreen({ navigation }) {
       exibirModal('Erro Arcano', 'Preencha todos os campos para invocar um novo necromante!');
       return;
     }
-  
+
     if (senha.length < 6) {
       exibirModal('Proteção Mágica', 'Sua senha mística deve ter no mínimo 6 runas.');
       return;
     }
-  
+
     if (senha !== confirmarSenha) {
       exibirModal('Erro Arcano', 'As senhas não coincidem no círculo místico!');
       return;
     }
-  
+
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, senha);
       const user = userCredential.user;
-  
+
       const userDocRef = doc(db, 'usuarios', user.uid);
       await setDoc(userDocRef, { email: user.email }, { merge: true });
-  
+
       exibirModal('Invocação Concluída', 'Novo necromante registrado no Círculo da Necromancia!');
     } catch (error) {
-      console.error('Erro ao criar usuário:', error.message, error.stack);
       const mensagemTematica = traduzirErroFirebase(error.code);
-      exibirModal('Erro Arcano', `Falha ao invocar novo necromante: ${mensagemTematica}`);
+      exibirModal('Erro Arcano', mensagemTematica);
     }
   };
-  
 
   return (
     <View style={estilos.container}>
@@ -166,12 +169,16 @@ export default function SignUpScreen({ navigation }) {
                 marginBottom: 20,
               }}
             >
-              {mensagemModal}
+              {typeof mensagemModal === 'string' ? mensagemModal : mensagemModal}
             </Text>
             <Pressable
               onPress={() => {
                 setModalVisible(false);
                 if (tituloModal === 'Invocação Concluída') {
+                  navigation.navigate('Login');
+                } else if (typeof mensagemModal === 'object' && mensagemModal.props.children.some(child => 
+                  typeof child === 'object' && child.props.style?.color === '#b9f2ff'
+                )) {
                   navigation.navigate('Login');
                 }
               }}

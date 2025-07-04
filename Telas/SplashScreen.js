@@ -1,21 +1,17 @@
-import React, { useRef } from 'react';
+
+
+import React, { useRef, useEffect } from 'react';
 import { View, StyleSheet, Dimensions } from 'react-native';
 import { Video } from 'expo-av';
-import { auth } from '../Firebase'; // Firebase já configurado?
-import { useNavigation } from '@react-navigation/native';
 
 const { width, height } = Dimensions.get('window');
 
-export default function SplashScreen() {
+export default function SplashScreen({ aoTerminar }) {
   const video = useRef(null);
-  const navigation = useNavigation();
 
   const handleVideoEnd = () => {
-    const usuario = auth.currentUser;
-    if (usuario) {
-      navigation.replace('Tabs'); // Usuário logado
-    } else {
-      navigation.replace('Login'); // Não logado
+    if (aoTerminar) {
+      aoTerminar(); // Informa para o Routes que terminou
     }
   };
 

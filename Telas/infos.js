@@ -8,11 +8,12 @@ export default function InfosScreen({ route }) {
   const [monstro, setMonstro] = useState(null);
   const [loading, setLoading] = useState(true);
   const [expandido, setExpandido] = useState({});
-  const [limiteAtingido, setLimiteAtingido] = useState(false); // Limite atingido
+  const [limiteAtingido, setLimiteAtingido] = useState(false);
+  const [linhasTexto, setLinhasTexto] = useState({});
 
   const traduzirTexto = async (texto, de = 'en', para = 'pt') => {
     if (limiteAtingido || texto.length >= 500) {
-      return texto; // volta texto original sem aviso
+      return texto;
     }
 
     try {
@@ -21,7 +22,6 @@ export default function InfosScreen({ route }) {
       );
       const data = await response.json();
 
-      // Verifica se a API retornou o aviso de limite
       if (
         data?.responseDetails?.includes('YOU HAVE REACHED THE MAXIMUM NUMBER OF REQUESTS PER DAY') ||
         data?.responseDetails?.includes('MYMEMORY WARNING')
@@ -53,7 +53,6 @@ export default function InfosScreen({ route }) {
         type: await traduzirTexto(data.type),
       };
 
-      // Se o limite foi atingido até aqui, paramos de tentar traduzir o resto
       if (limiteAtingido) {
         monstroTraduzido.actions = data.actions || [];
         monstroTraduzido.special_abilities = data.special_abilities || [];
@@ -64,7 +63,7 @@ export default function InfosScreen({ route }) {
               data.actions.map(async (acao) => ({
                 ...acao,
                 name: await traduzirTexto(acao.name),
-                desc: await traduzirTexto(acao.desc || '')
+                desc: await traduzirTexto(acao.desc || ''),
               }))
             )
           : [];
@@ -74,7 +73,7 @@ export default function InfosScreen({ route }) {
               data.special_abilities.map(async (hab) => ({
                 ...hab,
                 name: await traduzirTexto(hab.name),
-                desc: await traduzirTexto(hab.desc || '')
+                desc: await traduzirTexto(hab.desc || ''),
               }))
             )
           : [];
@@ -84,7 +83,7 @@ export default function InfosScreen({ route }) {
               data.legendary_actions.map(async (act) => ({
                 ...act,
                 name: await traduzirTexto(act.name),
-                desc: await traduzirTexto(act.desc || '')
+                desc: await traduzirTexto(act.desc || ''),
               }))
             )
           : [];
@@ -101,7 +100,15 @@ export default function InfosScreen({ route }) {
   const toggleExpandir = (tipo, idx) => {
     setExpandido((prev) => ({
       ...prev,
-      [`${tipo}_${idx}`]: !prev[`${tipo}_${idx}`]
+      [`${tipo}_${idx}`]: !prev[`${tipo}_${idx}`],
+    }));
+  };
+
+  const contarLinhas = (tipo, idx) => (e) => {
+    const numLinhas = e.nativeEvent.lines.length;
+    setLinhasTexto((prev) => ({
+      ...prev,
+      [`${tipo}_${idx}`]: numLinhas,
     }));
   };
 
@@ -118,7 +125,7 @@ export default function InfosScreen({ route }) {
     <ScrollView style={styles.container}>
       {limiteAtingido && (
         <Text style={[styles.loadingText, { color: '#ffa502', textAlign: 'center', marginBottom: 10 }]}>
-          ⚠️ Linguagem arcana! Falta de mana para traduzir...
+          <FontAwesome5 name="exclamation-triangle" size={16} color="#ffa502" /> Linguagem arcana! Falta de mana para traduzir...
         </Text>
       )}
 
@@ -127,7 +134,7 @@ export default function InfosScreen({ route }) {
       <Image
         source={{
           uri: `https://www.dnd5eapi.co/api/images/monsters/${monstro.index}.png`,
-          defaultSource: require('../assets/fallback.png')
+          defaultSource: require('../assets/fallback.png'),
         }}
         style={styles.imagem}
         resizeMode="contain"
@@ -135,22 +142,25 @@ export default function InfosScreen({ route }) {
 
       <View style={styles.statsContainer}>
         <View style={styles.statItem}>
-          <MaterialIcons name="security" size={20} color="#baffc9" />
+          <MaterialIcons name="shield" size={20} color="#baffc9" />
           <Text style={styles.statText}>
-            CA: {Array.isArray(monstro.armor_class) ? monstro.armor_class[0].value : monstro.armor_class}
+            CA: {Array.isArray(monstro.armor_class) ? monstro.armor_class[0].value : monstro.armor_class || 'N/A'}
           </Text>
         </View>
         <View style={styles.statItem}>
-          <FontAwesome5 name="heart" size={18} color="#ff6b6b" />
-          <Text style={styles.statText}>HP: {monstro.hit_points}</Text>
+          <FontAwesome5 name="heartbeat" size={18} color="#ff6b6b" />
+          <Text style={styles.statText}>HP: {monstro.hit_points || 'N/A'}</Text>
         </View>
         <View style={styles.statItem}>
           <Entypo name="mask" size={18} color="#a29bfe" />
-          <Text style={styles.statText}>Tipo: {monstro.type}</Text>
+          <Text style={styles.statText}>Tipo: {monstro.type || 'N/A'}</Text>
         </View>
       </View>
 
-      <Text style={styles.subtitulo}>🗡️ Ações</Text>
+      <View style={styles.header}>
+        <FontAwesome5 name="fist-raised" size={20} color="#b9f2ff" />
+        <Text style={styles.subtitulo}>Ações</Text>
+      </View>
       {monstro.actions?.length > 0 ? (
         monstro.actions.map((acao, index) => (
           <View key={index} style={styles.bloco}>
@@ -159,12 +169,13 @@ export default function InfosScreen({ route }) {
               <>
                 <Text
                   style={styles.acaoDesc}
-                  numberOfLines={expandido[`action_${index}`] ? undefined : 10}
+                  numberOfLines={expandido[`action_${index}`] ? undefined : 4}
                   ellipsizeMode="tail"
+                  onTextLayout={contarLinhas('action', index)}
                 >
                   {acao.desc}
                 </Text>
-                {acao.desc.length > 200 && (
+                {linhasTexto[`action_${index}`] > 4 && (
                   <TouchableOpacity onPress={() => toggleExpandir('action', index)}>
                     <Text style={styles.verMais}>
                       {expandido[`action_${index}`] ? 'Ver Menos' : 'Ver Mais'}
@@ -181,18 +192,22 @@ export default function InfosScreen({ route }) {
 
       {monstro.special_abilities?.length > 0 && (
         <>
-          <Text style={styles.subtitulo}>🔮 Habilidades Especiais</Text>
+          <View style={styles.header}>
+            <FontAwesome5 name="magic" size={20} color="#b9f2ff" />
+            <Text style={styles.subtitulo}>Habilidades Especiais</Text>
+          </View>
           {monstro.special_abilities.map((hab, i) => (
             <View key={i} style={styles.bloco}>
               <Text style={styles.acaoNome} numberOfLines={2} ellipsizeMode="tail">{hab.name}</Text>
               <Text
                 style={styles.acaoDesc}
-                numberOfLines={expandido[`ability_${i}`] ? undefined : 10}
+                numberOfLines={expandido[`ability_${i}`] ? undefined : 4}
                 ellipsizeMode="tail"
+                onTextLayout={contarLinhas('ability', i)}
               >
                 {hab.desc}
               </Text>
-              {hab.desc.length > 200 && (
+              {linhasTexto[`ability_${i}`] > 4 && (
                 <TouchableOpacity onPress={() => toggleExpandir('ability', i)}>
                   <Text style={styles.verMais}>
                     {expandido[`ability_${i}`] ? 'Ver Menos' : 'Ver Mais'}
@@ -206,18 +221,22 @@ export default function InfosScreen({ route }) {
 
       {monstro.legendary_actions?.length > 0 && (
         <>
-          <Text style={styles.subtitulo}>👑 Ações Lendárias</Text>
+          <View style={styles.header}>
+            <FontAwesome5 name="crown" size={20} color="#b9f2ff" />
+            <Text style={styles.subtitulo}>Ações Lendárias</Text>
+          </View>
           {monstro.legendary_actions.map((act, i) => (
             <View key={i} style={styles.bloco}>
               <Text style={styles.acaoNome} numberOfLines={2} ellipsizeMode="tail">{act.name}</Text>
               <Text
                 style={styles.acaoDesc}
-                numberOfLines={expandido[`legendary_${i}`] ? undefined : 10}
+                numberOfLines={expandido[`legendary_${i}`] ? undefined : 4}
                 ellipsizeMode="tail"
+                onTextLayout={contarLinhas('legendary', i)}
               >
                 {act.desc}
               </Text>
-              {act.desc.length > 200 && (
+              {linhasTexto[`legendary_${i}`] > 4 && (
                 <TouchableOpacity onPress={() => toggleExpandir('legendary', i)}>
                   <Text style={styles.verMais}>
                     {expandido[`legendary_${i}`] ? 'Ver Menos' : 'Ver Mais'}

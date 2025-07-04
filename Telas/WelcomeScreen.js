@@ -1,9 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState,useRef, useEffect } from 'react';
 import {View,FlatList,Animated,Easing,TouchableOpacity,Text,Image,Dimensions,TextInput,Modal} from 'react-native';
 import { auth } from '../Firebase';
 import {getFirestore,collection,doc,setDoc,getDocs,deleteDoc} from 'firebase/firestore';
 import styles from '../estilos/welcome';
 import { FontAwesome5 } from '@expo/vector-icons';
+
+
+
+
+
 
 const { width } = Dimensions.get('window');
 
@@ -23,11 +28,35 @@ export default function WelcomeScreen({ navigation }) {
   const [modalDeleteVisible, setModalDeleteVisible] = useState(false);
   const [monstroParaExcluir, setMonstroParaExcluir] = useState(null);
   const [carregando, setCarregando] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [termoBusca, setTermoBusca] = useState('');
   const scrollX = useState(new Animated.Value(0))[0];
   const animacao = useState(new Animated.Value(1))[0];
 
   const db = getFirestore();
+  const rotateAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    rotateAnim.setValue(0); // Resetar animação
+    const anim = Animated.loop(
+      Animated.timing(rotateAnim, {
+        toValue: 1,
+        duration: 3000,
+        useNativeDriver: true,
+      })
+    );
+  
+    if (monstrosFiltrados.length === 0 && termoBusca) {
+      anim.start(); // Iniciar apenas se busca inválida
+    }
+  
+    // Parar animação ao mudar busca
+  }, [termoBusca, monstrosFiltrados]); // Dependências dinâmicas
+  
+  const rotation = rotateAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '360deg'],
+  });
 
   const exibirErro = (mensagem) => {
     setMensagemErro(mensagem);
@@ -254,12 +283,14 @@ export default function WelcomeScreen({ navigation }) {
         ListHeaderComponent={
           <>
             <TextInput
-              placeholder="🔍 Buscar Monstro..."
+              placeholder=" Buscar Monstro..."
               placeholderTextColor="#999"
               value={termoBusca}
               onChangeText={setTermoBusca}
               style={styles.inputBusca}
-            />
+            >
+      
+            </TextInput>
 
             <Text style={styles.titulo}>Escolha seus Monstros</Text>
 
@@ -281,16 +312,23 @@ export default function WelcomeScreen({ navigation }) {
                 scrollEventThrottle={16}
               />
             ) : (
+              <View style={{ alignItems: 'center', marginVertical: 20 }}>
+              <Animated.View style={{ transform: [{ rotate: rotation }] }}>
+                <FontAwesome5 name="dice-d20" size={32} color="#2a0891" solid />
+              </Animated.View>
               <Text
                 style={{
                   color: '#aaa',
                   textAlign: 'center',
-                  marginVertical: 20,
+                  marginTop: 10,
                   fontStyle: 'italic'
                 }}
               >
-                🧙‍♂️ Nenhum monstro encontrado para "{termoBusca}".
+                Nenhum monstro encontrado para "{termoBusca}".
               </Text>
+            </View>
+          
+
             )}
 
             <TouchableOpacity style={styles.botao} onPress={handleSaveMonsters}>
