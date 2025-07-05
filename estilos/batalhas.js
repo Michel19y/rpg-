@@ -37,6 +37,47 @@ const styles = StyleSheet.create({
       shadowRadius: 6,
       elevation: 6,
     },
+    modalContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.5)',
+  },
+  modalContent: {
+    backgroundColor: '#1a1a2e',
+    padding: 20,
+    borderRadius: 10,
+    width: '80%',
+    borderWidth: 1,
+    borderColor: '#9400d3',
+  },
+  modalTitle: {
+    color: '#fff',
+    fontSize: 18,
+    marginBottom: 10,
+    textAlign: 'center',
+  },
+  acaoButton: {
+    backgroundColor: '#0f3460',
+    padding: 10,
+    marginVertical: 5,
+    borderRadius: 5,
+  },
+  acaoText: {
+    color: '#fff',
+    fontSize: 16,
+    textAlign: 'center',
+  },
+  closeButton: {
+    backgroundColor: '#4b0082',
+    padding: 10,
+    borderRadius: 5,
+    marginTop: 10,
+  },
+  closeButtonText: {
+    color: '#fff',
+    textAlign: 'center',
+  },
     alvo: {
       borderColor: '#8b0000',
       shadowColor: '#8b0000',

@@ -1,17 +1,12 @@
-import React, { useState,useRef, useEffect } from 'react';
-import {View,FlatList,Animated,Easing,TouchableOpacity,Text,Image,Dimensions,TextInput,Modal} from 'react-native';
+import React, { useState, useRef, useEffect } from 'react';
+import { View, FlatList, Animated, Easing, TouchableOpacity, Text, Image, Dimensions, ActivityIndicator, TextInput, Modal } from 'react-native';
 import { auth } from '../Firebase';
-import {getFirestore,collection,doc,setDoc,getDocs,deleteDoc} from 'firebase/firestore';
+import { getFirestore, collection, doc, setDoc, getDocs, deleteDoc } from 'firebase/firestore';
 import styles from '../estilos/welcome';
+import { useFonts } from 'expo-font';
 import { FontAwesome5 } from '@expo/vector-icons';
 
-
-
-
-
-
 const { width } = Dimensions.get('window');
-
 
 const normalize = (text) =>
   text
@@ -28,7 +23,6 @@ export default function WelcomeScreen({ navigation }) {
   const [modalDeleteVisible, setModalDeleteVisible] = useState(false);
   const [monstroParaExcluir, setMonstroParaExcluir] = useState(null);
   const [carregando, setCarregando] = useState(true);
-  const [isLoading, setIsLoading] = useState(false);
   const [termoBusca, setTermoBusca] = useState('');
   const scrollX = useState(new Animated.Value(0))[0];
   const animacao = useState(new Animated.Value(1))[0];
@@ -36,26 +30,38 @@ export default function WelcomeScreen({ navigation }) {
   const db = getFirestore();
   const rotateAnim = useRef(new Animated.Value(0)).current;
 
+  const monstrosFiltrados = monstros.filter(m =>
+    normalize(m.name).includes(normalize(termoBusca))
+  );
+
   useEffect(() => {
-    rotateAnim.setValue(0); // Resetar animação
-    const anim = Animated.loop(
-      Animated.timing(rotateAnim, {
-        toValue: 1,
-        duration: 3000,
-        useNativeDriver: true,
-      })
-    );
-  
-    if (monstrosFiltrados.length === 0 && termoBusca) {
-      anim.start(); // Iniciar apenas se busca inválida
+    let anim;
+    if (termoBusca && monstrosFiltrados.length === 0) {
+      rotateAnim.setValue(0);
+      anim = Animated.loop(
+        Animated.timing(rotateAnim, {
+          toValue: 1,
+          duration: 3000,
+          useNativeDriver: true,
+        })
+      );
+      anim.start();
+    } else {
+      rotateAnim.stopAnimation();
     }
-  
-    // Parar animação ao mudar busca
-  }, [termoBusca, monstrosFiltrados]); // Dependências dinâmicas
-  
+
+    return () => {
+      if (anim) anim.stop();
+    };
+  }, [termoBusca, monstrosFiltrados]);
+
   const rotation = rotateAnim.interpolate({
     inputRange: [0, 1],
     outputRange: ['0deg', '360deg'],
+  });
+
+  const [fontsLoaded] = useFonts({
+    'MedievalSharp-Regular': require('../assets/fonts/MedievalSharp-Regular.ttf'),
   });
 
   const exibirErro = (mensagem) => {
@@ -70,14 +76,14 @@ export default function WelcomeScreen({ navigation }) {
           toValue: 1.4,
           duration: 700,
           easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true
+          useNativeDriver: true,
         }),
         Animated.timing(animacao, {
           toValue: 1,
           duration: 700,
           easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true
-        })
+          useNativeDriver: true,
+        }),
       ])
     ).start();
 
@@ -102,13 +108,14 @@ export default function WelcomeScreen({ navigation }) {
           const resD = await fetch(`https://www.dnd5eapi.co${monster.url}`);
           const det = await resD.json();
           return {
-            index: monster.index,
-            name: monster.name,
+            index: det.index,
+            name: det.name,
             hit_points: det.hit_points || 0,
             armor_class: Array.isArray(det.armor_class)
               ? det.armor_class[0]?.value || 0
               : det.armor_class || 0,
-            main_action: det.actions?.[0] || { name: 'Nenhuma ação', desc: '' }
+            actions: det.actions || [],
+            special_abilities: det.special_abilities || [],
           };
         })
       );
@@ -133,9 +140,7 @@ export default function WelcomeScreen({ navigation }) {
 
   const handleSelectMonster = (m) => {
     const jaSelecionado = selecionados.includes(m.index);
-    
     if (jaSelecionado) {
-      // Desmarca o monstro
       setSelecionados(selecionados.filter(i => i !== m.index));
     } else {
       const totalSelecionados = selecionados.length + monstrosSalvos.length;
@@ -146,53 +151,51 @@ export default function WelcomeScreen({ navigation }) {
       setSelecionados([...selecionados, m.index]);
     }
   };
-  
 
   const handleSaveMonsters = async () => {
     const user = auth.currentUser;
     if (!user) return;
-  
+
     const total = monstrosSalvos.length + selecionados.length;
     if (total > 3) {
       exibirErro(`Você só pode ter no máximo 3 feras. Atual: ${monstrosSalvos.length} salvos, ${selecionados.length} novos.`);
       return;
     }
-  
+
     if (selecionados.length === 0) {
       exibirErro('Nenhuma fera mágica selecionada.');
       return;
     }
-  
+
     const userRef = doc(db, 'usuarios', user.uid);
     const monstersRef = collection(userRef, 'monsters');
     const toSave = monstros.filter(m => selecionados.includes(m.index));
-  
+
     for (let m of toSave) {
       const nameKey = m.name.toLowerCase().replace(/\s+/g, '_');
-      const uniqueId = `${nameKey}_${Date.now()}`;
-  
-      await setDoc(doc(monstersRef, uniqueId), {
+      const newMonsterRef = doc(monstersRef);
+      await setDoc(newMonsterRef, {
         index: m.index,
         name: m.name,
         nameKey: nameKey,
         hit_points: m.hit_points,
         armor_class: m.armor_class,
-        main_action: m.main_action,
+        actions: m.actions || [],
+        special_abilities: m.special_abilities || [],
         userId: user.uid,
-        timestamp: new Date()
+        timestamp: new Date(),
       });
     }
-  
+
     setSelecionados([]);
     await fetchMonstrosSalvos(user);
   };
-  
+
   const abrirModalExcluir = (m) => {
     setMonstroParaExcluir(m);
     setModalDeleteVisible(true);
   };
 
-  // Confirmar exclusão
   const confirmarExcluirMonstro = async () => {
     if (!monstroParaExcluir) return;
 
@@ -211,7 +214,7 @@ export default function WelcomeScreen({ navigation }) {
       style={[
         styles.card,
         selecionados.includes(item.index) && styles.cardSelecionado,
-        { width: width * 0.6 }
+        { width: width * 0.6 },
       ]}
       onPress={() => handleSelectMonster(item)}
     >
@@ -222,7 +225,6 @@ export default function WelcomeScreen({ navigation }) {
       />
       <Text style={styles.nome} numberOfLines={1}>{item.name}</Text>
       <Text style={styles.stat}>CA: {item.armor_class} | HP: {item.hit_points}</Text>
-
       <TouchableOpacity
         onPress={() => navigation.navigate('Infos', { index: item.index })}
         style={{ position: 'absolute', top: 10, right: 10 }}
@@ -243,7 +245,7 @@ export default function WelcomeScreen({ navigation }) {
         <Text style={styles.nome}>{item.name}</Text>
         <Text style={styles.stat}>CA: {item.armor_class} | HP: {item.hit_points}</Text>
         <Text style={styles.desc} numberOfLines={2}>
-          {item.main_action?.name || 'Sem ação'}: {item.main_action?.desc || 'Sem descrição'}
+          {item.actions?.[0]?.name || 'Sem ação'}: {item.actions?.[0]?.desc || 'Sem descrição'}
         </Text>
       </View>
       <View style={{ gap: 10 }}>
@@ -255,11 +257,6 @@ export default function WelcomeScreen({ navigation }) {
         </TouchableOpacity>
       </View>
     </View>
-  );
-
-  // Filtro atualizado para ignorar acentos e case-sensitive
-  const monstrosFiltrados = monstros.filter(m =>
-    normalize(m.name).includes(normalize(termoBusca))
   );
 
   if (carregando) {
@@ -288,20 +285,12 @@ export default function WelcomeScreen({ navigation }) {
               value={termoBusca}
               onChangeText={setTermoBusca}
               style={styles.inputBusca}
-            >
-      
-            </TextInput>
-
+            />
             <Text style={styles.titulo}>Escolha seus Monstros</Text>
-
             {monstrosFiltrados.length > 0 ? (
               <Animated.FlatList
                 data={monstrosFiltrados}
-                renderItem={(props) => (
-                  <Animated.View style={{ marginRight: 10 }}>
-                    {renderMonster(props)}
-                  </Animated.View>
-                )}
+                renderItem={renderMonster}
                 keyExtractor={(item) => item.index}
                 horizontal
                 showsHorizontalScrollIndicator={false}
@@ -313,34 +302,21 @@ export default function WelcomeScreen({ navigation }) {
               />
             ) : (
               <View style={{ alignItems: 'center', marginVertical: 20 }}>
-              <Animated.View style={{ transform: [{ rotate: rotation }] }}>
-                <FontAwesome5 name="dice-d20" size={32} color="#2a0891" solid />
-              </Animated.View>
-              <Text
-                style={{
-                  color: '#aaa',
-                  textAlign: 'center',
-                  marginTop: 10,
-                  fontStyle: 'italic'
-                }}
-              >
-                Nenhum monstro encontrado para "{termoBusca}".
-              </Text>
-            </View>
-          
-
+                <Animated.View style={{ transform: [{ rotate: rotation }] }}>
+                  <FontAwesome5 name="dice-d20" size={32} color="#2a0891" solid />
+                </Animated.View>
+                <Text style={{ color: '#aaa', textAlign: 'center', marginTop: 10, fontStyle: 'italic' }}>
+                  nenhum monstro encontrado para "{termoBusca}".
+                </Text>
+              </View>
             )}
-
             <TouchableOpacity style={styles.botao} onPress={handleSaveMonsters}>
               <Text style={styles.botaoTexto}>SALVAR INVOCAÇÃO</Text>
             </TouchableOpacity>
-
             <Text style={styles.subtitulo}>Invocações Atuais</Text>
           </>
         }
       />
-
-      {/* Modal de Erro */}
       <Modal visible={modalErroVisible} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
@@ -355,18 +331,13 @@ export default function WelcomeScreen({ navigation }) {
           </View>
         </View>
       </Modal>
-
-      {/* Modal de Exclusão */}
       <Modal visible={modalDeleteVisible} transparent animationType="fade">
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <Text style={styles.modalTitle}>Confirmação de Exclusão</Text>
             <Text style={styles.modalMensagem}>
-  {monstroParaExcluir
-    ? `Deseja exilar o ${monstroParaExcluir.name}?`
-    : 'Nenhum monstro selecionado.'}
-</Text>
-
+              {monstroParaExcluir ? `Deseja exilar o ${monstroParaExcluir.name}?` : 'Nenhum monstro selecionado.'}
+            </Text>
             <TouchableOpacity
               style={[styles.modalBotao, { marginBottom: 10 }]}
               onPress={confirmarExcluirMonstro}

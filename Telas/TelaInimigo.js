@@ -40,8 +40,9 @@ export default function TelaSelecionarInimigo({ navigation }) {
   );
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>
+    <View style={styles.container}><Text style={[styles.title, { fontFamily: 'MedievalSharp-Regular' }]}>
+
+
         <FontAwesome5 name="crosshairs" size={24} color="#b9f2ff" /> Escolha o Inimigo
       </Text>
 

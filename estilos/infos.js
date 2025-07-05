@@ -28,7 +28,7 @@ const styles = StyleSheet.create({
     nome: {
       color: '#b9f2ff',
       fontSize: 24,
-      fontWeight: 'bold',
+     fontFamily: 'MedievalSharp-Regular' ,
       textAlign: 'center',
       marginBottom: 10,
       textShadowColor: '#6a0dad',
@@ -58,7 +58,7 @@ const styles = StyleSheet.create({
       fontSize: 18,
       color: '#d1c4e9',
       marginBottom: 8,
-      fontWeight: 'bold',
+       fontFamily: 'MedievalSharp-Regular' ,
     },
     bloco: {
       backgroundColor: '#1f1f1f',

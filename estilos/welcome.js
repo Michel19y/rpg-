@@ -11,7 +11,7 @@ const styles = StyleSheet.create({
     fontSize: 22,
     textAlign: 'center',
     marginBottom: 10,
-    fontWeight: 'bold',
+fontFamily: 'MedievalSharp-Regular', 
     textShadowColor: '#000',
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 2
@@ -21,7 +21,7 @@ const styles = StyleSheet.create({
     fontSize: 22,
     textAlign: 'center',
     marginBottom: 10,
-    fontWeight: 'bold',
+ fontFamily: 'MedievalSharp-Regular',
     textShadowColor: '#000',
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 2
@@ -59,7 +59,9 @@ const styles = StyleSheet.create({
   imagem: {
     width: 160, // Slightly increased width to fill more space
     height: 120, // Adjusted height to match the image's approximate aspect ratio
-    marginBottom: 8, // Increased margin for better text spacing
+    marginBottom: 8,
+    borderRadius: 50,
+    borderColor:'red',
     resizeMode: 'contain', // Maintains image proportion
   },
   cardSelecionado: {
@@ -113,6 +115,7 @@ const styles = StyleSheet.create({
   imagemSalva: {
     width: 60,
     height: 60,
+    border:30,
     marginRight: 10
   },
   containerCarregamento: {

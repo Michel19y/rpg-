@@ -9,7 +9,7 @@ const styles = StyleSheet.create({
     },
     title: {
       fontSize: 20,
-      fontWeight: 'bold',
+      fontFamily: 'MedievalSharp-Regular',
       color: '#b9f2ff',
       textAlign: 'center',
       marginBottom: 20,

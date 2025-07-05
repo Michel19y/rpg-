@@ -19,7 +19,7 @@ export default function SplashScreen({ aoTerminar }) {
     <View style={styles.container}>
       <Video
         ref={video}
-        source={require('../assets/splash.mp4')}
+        source={require('../assets/video/splash.mp4')}
         style={styles.video}
         resizeMode="cover"
         shouldPlay

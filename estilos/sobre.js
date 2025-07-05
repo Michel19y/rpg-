@@ -20,6 +20,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     color: '#e0b3ff',
     textAlign: 'center',
+     fontFamily: 'MedievalSharp-Regular' ,
     marginBottom: 20,
     textShadowColor: '#9c27b0',
     textShadowOffset: { width: 1, height: 1 },
@@ -32,14 +33,16 @@ const styles = StyleSheet.create({
   },
   highlight: {
     color: '#baffc9',
-    fontWeight: 'bold',
+    fontFamily: 'MedievalSharp-Regular' ,
+
   },
   section: {
     fontSize: 18,
     color: '#d1c4e9',
     marginTop: 20,
     marginBottom: 10,
-    fontWeight: 'bold',
+    fontFamily: 'MedievalSharp-Regular' ,
+
   },
   link: {
     color: '#a29bfe',
@@ -52,6 +55,7 @@ const styles = StyleSheet.create({
   footerText: {
     color: '#888',
     fontSize: 14,
+     fontFamily: 'MedievalSharp-Regular' ,
     marginBottom: 10,
   },
   icons: {
