@@ -1,0 +1,1 @@
+esssa bomba esta pronta
