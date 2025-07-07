@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -7,29 +7,84 @@ import {
   TouchableOpacity,
   Modal,
   Pressable,
+  Button,
 } from 'react-native';
 import { FontAwesome, MaterialIcons } from '@expo/vector-icons';
 import { getAuth, signOut } from 'firebase/auth';
-import styles from '../estilos/sobre'; // Certifique-se que esse caminho está certo
+import DropDownPicker from 'react-native-dropdown-picker';
+import { Audio } from 'expo-av';
+import Slider from '@react-native-community/slider';
+import styles from '../estilos/sobre'; // Ensure the path is correct
 
 export default function SobreScreen() {
   const [modalVisible, setModalVisible] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [selected, setSelected] = useState(null);
+  const [items, setItems] = useState([]);
+  const [sound, setSound] = useState(null);
+  const [volume, setVolume] = useState(1.0); // Initial volume (max)
 
+  // Logout function
   const handleLogout = () => {
     const auth = getAuth();
     signOut(auth)
-      .then(() => {
-        setModalVisible(false);
-        // ✅ Nenhuma navegação aqui! onAuthStateChanged cuida disso automaticamente.
-      })
-      .catch((error) => {
-        console.error('Erro ao deslogar:', error);
-      });
+      .then(() => setModalVisible(false))
+      .catch((error) => console.error('Error signing out:', error));
   };
+
+  // Set music options
+  useEffect(() => {
+    setItems([
+      {
+        label: 'Tema',
+        value: require('../assets/musicas/tema.mp3'), // Local file
+      },
+      // Add more local music files if desired, e.g.:
+      // { label: 'Teste 2', value: require('../assets/musicas/tste2.mp3') },
+    ]);
+  }, []);
+
+  // Toggle play/stop music
+  const toggleSound = async () => {
+    if (!selected) return;
+    try {
+      if (sound) {
+        await sound.stopAsync();
+        await sound.unloadAsync();
+        setSound(null);
+      } else {
+        const { sound: newSound } = await Audio.Sound.createAsync(selected);
+        setSound(newSound);
+        await newSound.setVolumeAsync(volume);
+        await newSound.playAsync();
+      }
+    } catch (error) {
+      console.error('Error playing/stopping music:', error);
+    }
+  };
+
+  // Adjust music volume
+  const handleVolumeChange = async (newVolume) => {
+    setVolume(newVolume);
+    if (sound) {
+      try {
+        await sound.setVolumeAsync(newVolume);
+      } catch (error) {
+        console.error('Error adjusting volume:', error);
+      }
+    }
+  };
+
+  // Cleanup sound on component unmount
+  useEffect(() => {
+    return () => {
+      if (sound) sound.unloadAsync();
+    };
+  }, [sound]);
 
   return (
     <View style={{ flex: 1 }}>
-      {/* Botão de Logout */}
+      {/* Floating Logout Button */}
       <TouchableOpacity
         onPress={() => setModalVisible(true)}
         style={{
@@ -49,8 +104,11 @@ export default function SobreScreen() {
         <MaterialIcons name="logout" size={24} color="#e0b3ff" />
       </TouchableOpacity>
 
-      {/* Conteúdo principal */}
-      <ScrollView style={styles.container}>
+      {/* Main Content */}
+      <ScrollView
+        style={styles.container}
+        nestedScrollEnabled={true} // Avoid VirtualizedList conflicts
+      >
         <View style={styles.card}>
           <Text style={styles.title}>Sobre o Projeto: RPG Codex</Text>
 
@@ -79,7 +137,7 @@ export default function SobreScreen() {
           <Text style={styles.paragraph}>• React Native + Expo</Text>
           <Text style={styles.paragraph}>• Firebase Authentication e Firestore</Text>
           <Text style={styles.paragraph}>• Consumo da API pública D&D 5e</Text>
-          <Text style={styles.paragraph}>• react  para telas auxiliares</Text>
+          <Text style={styles.paragraph}>• React para telas auxiliares</Text>
 
           <Text style={styles.section}>Objetivo</Text>
           <Text style={styles.paragraph}>
@@ -88,10 +146,38 @@ export default function SobreScreen() {
             fantasia sombria e combate mágico.
           </Text>
 
+          {/* Music Section */}
+          <View style={{ zIndex: 1000, marginVertical: 10 }}>
+            <Text style={[styles.section, { marginTop: 20 }]}>Música Tema RPG</Text>
+            <DropDownPicker
+              open={open}
+              setOpen={setOpen}
+              value={selected}
+              setValue={setSelected}
+              items={items}
+              setItems={setItems}
+              placeholder="Selecione uma música"
+              containerStyle={{ marginVertical: 10 }}
+              style={{ backgroundColor: '#1a001a', borderColor: '#9400d3' }}
+              textStyle={{ color: '#fff' }}
+              dropDownContainerStyle={{ backgroundColor: '#1a001a', borderColor: '#9400d3' }}
+            />
+            <Button
+              title={sound ? 'Parar Música' : 'Tocar Música'}
+              onPress={toggleSound}
+              disabled={!selected}
+            />
+          </View>
+
+          {/* Footer */}
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Desenvolvido por Michel • IFSC Lages - 2025</Text>
+            <Text style={styles.footerText}>
+              Desenvolvido por Michel • IFSC Lages - 2025
+            </Text>
             <View style={styles.icons}>
-              <TouchableOpacity onPress={() => Linking.openURL('https://github.com/Michel19y')}>
+              <TouchableOpacity
+                onPress={() => Linking.openURL('https://github.com/Michel19y')}
+              >
                 <FontAwesome name="github" size={24} color="#b9f2ff" style={styles.icon} />
               </TouchableOpacity>
               <TouchableOpacity
@@ -101,7 +187,9 @@ export default function SobreScreen() {
               >
                 <FontAwesome name="linkedin" size={24} color="#b9f2ff" style={styles.icon} />
               </TouchableOpacity>
-              <TouchableOpacity onPress={() => Linking.openURL('https://www.instagram.com/__michelwr')}>
+              <TouchableOpacity
+                onPress={() => Linking.openURL('https://www.instagram.com/__michelwr')}
+              >
                 <FontAwesome name="instagram" size={24} color="#b9f2ff" style={styles.icon} />
               </TouchableOpacity>
             </View>
@@ -109,7 +197,7 @@ export default function SobreScreen() {
         </View>
       </ScrollView>
 
-      {/* Modal de confirmação de logout */}
+      {/* Logout Modal with Volume Control */}
       <Modal
         transparent
         animationType="fade"
@@ -138,6 +226,11 @@ export default function SobreScreen() {
               elevation: 10,
             }}
           >
+            {/* Music Icon */}
+            <View style={{ alignItems: 'center', marginBottom: 15 }}>
+              <MaterialIcons name="music-note" size={40} color="#e0b3ff" />
+            </View>
+
             <Text
               style={{
                 color: '#fff',
@@ -148,6 +241,24 @@ export default function SobreScreen() {
             >
               Deseja mesmo sair do RPG Codex?
             </Text>
+
+            {/* Volume Control */}
+            <View style={{ marginBottom: 20 }}>
+              <Text style={{ color: '#e0b3ff', fontSize: 16, marginBottom: 10 }}>
+                Volume da Música
+              </Text>
+              <Slider
+                style={{ width: '100%', height: 40 }}
+                minimumValue={0}
+                maximumValue={1}
+                value={volume}
+                onValueChange={handleVolumeChange}
+                minimumTrackTintColor="#9400d3"
+                maximumTrackTintColor="#333"
+                thumbTintColor="#e0b3ff"
+              />
+            </View>
+
             <View style={{ flexDirection: 'row', justifyContent: 'space-around' }}>
               <Pressable
                 onPress={handleLogout}
