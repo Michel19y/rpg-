@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -27,14 +27,14 @@ export default function TelaArenaBatalha({ route }) {
   const [selecionado, setSelecionado] = useState(null);
   const [alvoSelecionado, setAlvoSelecionado] = useState(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const [errorModalVisible, setErrorModalVisible] = useState(false);
   const [monstroSelecionado, setMonstroSelecionado] = useState(null);
   const [acaoSelecionada, setAcaoSelecionada] = useState(null);
-  const [rolandoAtaque, setRolandoAtaque] = useState(false);
-  const [rolandoDano, setRolandoDano] = useState(false);
   const [d20Roll, setD20Roll] = useState(null);
   const [danoRoll, setDanoRoll] = useState(null);
   const [rodadaAtual, setRodadaAtual] = useState(1);
   const [mensagemErro, setMensagemErro] = useState(null);
+  const [isRolling, setIsRolling] = useState(false);
 
   useEffect(() => {
     carregarDados();
@@ -82,7 +82,7 @@ export default function TelaArenaBatalha({ route }) {
             })),
             attack_bonus: data.attack_bonus ?? 0,
             damage_dice: data.damage?.[0]?.damage_dice || '1d6',
-            damage_type: data.damage?.[0]?.damage_type?.name || 'Bludgeoning',
+            damage_type: data.damage?.[0]?.damage_type?.name || 'Ruptura',
             image: data.image || `https://www.dnd5eapi.co/api/images/monsters/${data.index || 'default'}.png`,
           };
         });
@@ -99,12 +99,12 @@ export default function TelaArenaBatalha({ route }) {
               name: action.name || 'Ataque Básico',
               attack_bonus: action.attack_bonus ?? 0,
               damage_dice: action.damage?.[0]?.damage_dice || '1d6',
-              damage_type: action.damage?.[0]?.damage_type?.name || 'Bludgeoning',
+              damage_type: action.damage?.[0]?.damage_type?.name || 'Ruptura',
               desc: action.desc || '',
             })),
             attack_bonus: data.attack_bonus ?? 0,
             damage_dice: data.damage?.[0]?.damage_dice || '1d6',
-            damage_type: data.damage?.[0]?.damage_type?.name || 'Bludgeoning',
+            damage_type: data.damage?.[0]?.damage_type?.name || 'Ruptura',
             image: data.image || `https://www.dnd5eapi.co/api/images/monsters/${data.index || 'default'}.png`,
           };
         });
@@ -121,77 +121,36 @@ export default function TelaArenaBatalha({ route }) {
     }
   }
 
-  const RolagemDado = ({ dado, onComplete, tipo, atacante, acao }) => {
-    const animation = useRef(null);
-    const [valorFinal, setValorFinal] = useState(null);
-    const [valorCalculado, setValorCalculado] = useState(null);
-
-    useEffect(() => {
-      const [numDados, resto] = dado.split('d');
-      const [tipoDado, modificadorStr] = resto.includes('+') ? resto.split('+') : [resto, '0'];
-      const modificador = parseInt(modificadorStr) || 0;
-      const total = Array.from({ length: parseInt(numDados) || 1 }, () =>
-        Math.floor(Math.random() * (parseInt(tipoDado) || 6)) + 1
-      ).reduce((a, b) => a + b, 0) + modificador;
-      setValorCalculado(total);
-      animation.current?.play(0, 180);
-    }, [dado]);
-
-    return (
-      <View style={{ alignItems: 'center', marginVertical: 20 }}>
-        <LottieView
-          ref={animation}
-          source={require('../assets/json/dado.json')}
-          style={{ width: 150, height: 150 }}
-          loop={false}
-          onAnimationFinish={() => {
-            setValorFinal(valorCalculado);
-            setRolagens(prev => [...prev, {
-              id: `${Date.now()}-${Math.random()}`,
-              rodada: rodadaAtual,
-              tipo,
-              dado,
-              valor: valorCalculado,
-              atacante,
-              acao,
-            }]);
-            onComplete(valorCalculado);
-          }}
-        />
-        {valorFinal !== null && (
-          <Text style={{ color: '#b9f2ff', fontSize: 36, fontWeight: 'bold', marginTop: 10 }}>
-            {valorFinal}
-          </Text>
-        )}
-        <Text style={{ color: '#ccc', fontSize: 16, marginTop: 10 }}>
-          Rolando {dado} ({tipo})...
-        </Text>
-      </View>
-    );
-  };
-
-  function rolarDado(dado) {
+  async function rolarDado(dado) {
+    setIsRolling(true);
+    await new Promise(resolve => setTimeout(resolve, 1000));
     const [numDados, resto] = dado.split('d');
     const [tipoDado, modificadorStr] = resto.includes('+') ? resto.split('+') : [resto, '0'];
     const modificador = parseInt(modificadorStr) || 0;
     const total = Array.from({ length: parseInt(numDados) || 1 }, () =>
       Math.floor(Math.random() * (parseInt(tipoDado) || 6)) + 1
     ).reduce((a, b) => a + b, 0) + modificador;
+    setIsRolling(false);
     return total;
   }
 
-  function ataqueAcerta(atk, def, bonus, d20Roll) {
-    const modifiedRoll = (d20Roll || rolarDado('1d20')) + (bonus || 0);
-    return { acerta: modifiedRoll >= (def || 10), d20Roll: d20Roll || rolarDado('1d20') };
+  async function ataqueAcerta(atk, def, bonus) {
+    const d20Roll = await rolarDado('1d20');
+    const modifiedRoll = d20Roll + (bonus || 0);
+    return { acerta: modifiedRoll >= (def || 10), d20Roll: modifiedRoll };
   }
 
-  function calcularDano(damageDice) {
-    return rolarDado(damageDice || '1d6');
+  async function calcularDano(damageDice) {
+    return await rolarDado(damageDice || '1d6');
   }
 
   async function realizarAtaque(acao) {
-    if (!selecionado || !alvoSelecionado || !acao || rodadaAtiva) {
-      setMensagemErro(!alvoSelecionado ? 'Selecione um alvo antes de atacar!' : 'Aguarde a rodada atual terminar!');
+    if (!selecionado || !acao || rodadaAtiva) {
+      setMensagemErro('Selecione um monstro ou aguarde a rodada terminar!');
+      return;
+    }
+    if (!alvoSelecionado) {
+      setMensagemErro('Selecione um inimigo antes de atacar!');
       return;
     }
 
@@ -209,42 +168,34 @@ export default function TelaArenaBatalha({ route }) {
       return;
     }
 
-    setRolandoAtaque(true);
-    const d20Roll = await new Promise(resolve => {
-      const onComplete = (valor) => {
-        setRolandoAtaque(false);
-        setD20Roll(valor);
-        resolve(valor);
-      };
-      setTimeout(() => {
-        if (rolandoAtaque) {
-          const fallback = rolarDado('1d20');
-          setD20Roll(fallback);
-          setRolandoAtaque(false);
-          resolve(fallback);
-        }
-      }, 2000);
-    });
+    console.log('Início da Rodada', rodadaAtual, 'Ataque de', atacante.name);
 
-    const { acerta } = ataqueAcerta(atacante.atk, defensor.def, acao.attack_bonus || 0, d20Roll);
+    const { acerta, d20Roll } = await ataqueAcerta(atacante.atk, defensor.def, acao.attack_bonus || 0);
+    setD20Roll(d20Roll);
+    setRolagens(prev => [...prev, {
+      id: `${Date.now()}-${Math.random()}`,
+      rodada: rodadaAtual,
+      tipo: 'Ataque',
+      dado: '1d20',
+      valor: d20Roll,
+      atacante: atacante.name,
+      acao: acao.name,
+      isPlayer: true,
+    }]);
 
     if (acerta) {
-      setRolandoDano(true);
-      const dano = await new Promise(resolve => {
-        const onComplete = (valor) => {
-          setRolandoDano(false);
-          setDanoRoll(valor);
-          resolve(valor);
-        };
-        setTimeout(() => {
-          if (rolandoDano) {
-            const fallback = calcularDano(acao.damage_dice || '1d6');
-            setDanoRoll(fallback);
-            setRolandoDano(false);
-            resolve(fallback);
-          }
-        }, 2000);
-      });
+      const dano = await calcularDano(acao.damage_dice || '1d6');
+      setDanoRoll(dano);
+      setRolagens(prev => [...prev, {
+        id: `${Date.now()}-${Math.random()}`,
+        rodada: rodadaAtual,
+        tipo: 'Dano',
+        dado: acao.damage_dice || '1d6',
+        valor: dano,
+        atacante: atacante.name,
+        acao: acao.name,
+        isPlayer: true,
+      }]);
 
       const novoHpDef = Math.max(defensor.hpAtual - dano, 0);
       setMonstrosInimigos(prev => prev.map(m => m.id === defensor.id ? { ...m, hpAtual: novoHpDef } : m));
@@ -252,6 +203,8 @@ export default function TelaArenaBatalha({ route }) {
       if (novoHpDef <= 0) {
         setMensagemErro(`${defensor.name} foi derrotado!`);
       }
+    } else {
+      setMensagemErro(`${atacante.name} errou o ataque!`);
     }
 
     const vivos = monstrosInimigos.filter(m => m.hpAtual > 0);
@@ -261,47 +214,36 @@ export default function TelaArenaBatalha({ route }) {
         name: 'Ataque Básico',
         attack_bonus: contra.attack_bonus || 0,
         damage_dice: contra.damage_dice || '1d6',
-        damage_type: contra.damage_type || 'Bludgeoning',
+        damage_type: contra.damage_type || 'Ruptura',
       };
       const alvo = meusMonstros.find(m => m.hpAtual > 0);
 
       if (alvo) {
-        setRolandoAtaque(true);
-        const d20RollContra = await new Promise(resolve => {
-          const onComplete = (valor) => {
-            setRolandoAtaque(false);
-            setD20Roll(valor);
-            resolve(valor);
-          };
-          setTimeout(() => {
-            if (rolandoAtaque) {
-              const fallback = rolarDado('1d20');
-              setD20Roll(fallback);
-              setRolandoAtaque(false);
-              resolve(fallback);
-            }
-          }, 2000);
-        });
-
-        const { acerta: acertaContra } = ataqueAcerta(contra.atk, alvo.def, acaoContra.attack_bonus || 0, d20RollContra);
+        console.log('Contra-ataque de', contra.name);
+        const { acerta: acertaContra, d20Roll: d20RollContra } = await ataqueAcerta(contra.atk, alvo.def, acaoContra.attack_bonus || 0);
+        setRolagens(prev => [...prev, {
+          id: `${Date.now()}-${Math.random()}`,
+          rodada: rodadaAtual,
+          tipo: 'Ataque',
+          dado: '1d20',
+          valor: d20RollContra,
+          atacante: contra.name,
+          acao: acaoContra.name,
+          isPlayer: false,
+        }]);
 
         if (acertaContra) {
-          setRolandoDano(true);
-          const danoContra = await new Promise(resolve => {
-            const onComplete = (valor) => {
-              setRolandoDano(false);
-              setDanoRoll(valor);
-              resolve(valor);
-            };
-            setTimeout(() => {
-              if (rolandoDano) {
-                const fallback = calcularDano(acaoContra.damage_dice);
-                setDanoRoll(fallback);
-                setRolandoDano(false);
-                resolve(fallback);
-              }
-            }, 2000);
-          });
+          const danoContra = await calcularDano(acaoContra.damage_dice);
+          setRolagens(prev => [...prev, {
+            id: `${Date.now()}-${Math.random()}`,
+            rodada: rodadaAtual,
+            tipo: 'Dano',
+            dado: acaoContra.damage_dice,
+            valor: danoContra,
+            atacante: contra.name,
+            acao: acaoContra.name,
+            isPlayer: false,
+          }]);
 
           const novoHpMeu = Math.max(alvo.hpAtual - danoContra, 0);
           setMeusMonstros(prev => prev.map(m => m.id === alvo.id ? { ...m, hpAtual: novoHpMeu } : m));
@@ -309,10 +251,13 @@ export default function TelaArenaBatalha({ route }) {
           if (novoHpMeu <= 0) {
             setMensagemErro(`${alvo.name} foi derrotado!`);
           }
+        } else {
+          setMensagemErro(`${contra.name} errou o ataque!`);
         }
       }
     }
 
+    console.log('Fim da Rodada', rodadaAtual);
     setRodadaAtiva(false);
     setSelecionado(null);
     setAlvoSelecionado(null);
@@ -325,11 +270,19 @@ export default function TelaArenaBatalha({ route }) {
 
   const ProgressBar = ({ hp, maxHp }) => {
     const progress = Math.max((hp || 0) / (maxHp || 1), 0);
+    const color = getColorForProgress(progress);
+
     return (
       <View style={{ height: 10, width: '100%', backgroundColor: '#555', borderRadius: 5, overflow: 'hidden', marginVertical: 5 }}>
-        <View style={{ height: '100%', width: `${progress * 100}%`, backgroundColor: 'red' }} />
+        <View style={{ height: '100%', width: `${progress * 100}%`, backgroundColor: color }} />
       </View>
     );
+  };
+
+  const getColorForProgress = (progress) => {
+    if (progress >= 0.7) return '#00ff00';
+    if (progress >= 0.35) return '#ffff00';
+    return '#ff0000';
   };
 
   const renderAcao = ({ item }) => {
@@ -342,16 +295,15 @@ export default function TelaArenaBatalha({ route }) {
             setMensagemErro('Ação inválida. Escolha outra ação.');
             return;
           }
-          setAcaoSelecionada(acao.name);
           realizarAtaque({
             name: acao.name,
             attack_bonus: acao.attack_bonus ?? 0,
             damage_dice: acao.damage?.[0]?.damage_dice || acao.damage_dice || '1d6',
-            damage_type: acao.damage?.[0]?.damage_type?.name || acao.damage_type || 'Bludgeoning',
+            damage_type: acao.damage?.[0]?.damage_type?.name || acao.damage_type || 'Ruptura',
             desc: acao.desc || '',
           });
         }}
-        disabled={rodadaAtiva || !alvoSelecionado || (!acao.damage_dice && !acao.damage?.[0]?.damage_dice)}
+        disabled={rodadaAtiva || isRolling || (!acao.damage_dice && !acao.damage?.[0]?.damage_dice)}
       >
         <View style={{ padding: 10 }}>
           <Text style={styles.acaoText}>
@@ -391,12 +343,16 @@ export default function TelaArenaBatalha({ route }) {
         if (item.hpAtual > 0) {
           setMonstroSelecionado(item);
           setSelecionado(item.id);
-          setModalVisible(true);
+          if (!alvoSelecionado) {
+            setErrorModalVisible(true);
+          } else {
+            setModalVisible(true);
+          }
         } else {
           setMensagemErro('Este monstro está derrotado!');
         }
       }}
-      disabled={item.hpAtual <= 0}
+      disabled={item.hpAtual <= 0 || isRolling}
     >
       <View style={[styles.card, selecionado === item.id && styles.selecionado, item.hpAtual <= 0 && styles.inimigoDesativado]}>
         <Image
@@ -419,12 +375,16 @@ export default function TelaArenaBatalha({ route }) {
       <TouchableOpacity
         onPress={() => {
           if (!morto) {
-            setAlvoSelecionado(item.id);
+            if (alvoSelecionado === item.id) {
+              setAlvoSelecionado(null);
+            } else {
+              setAlvoSelecionado(item.id);
+            }
           } else {
             setMensagemErro('Este inimigo está derrotado!');
           }
         }}
-        disabled={morto}
+        disabled={morto || isRolling}
       >
         <View style={[styles.card, morto && styles.inimigoDesativado, alvoSelecionado === item.id && styles.alvo]}>
           <Image
@@ -443,7 +403,7 @@ export default function TelaArenaBatalha({ route }) {
   };
 
   const renderRolagem = ({ item }) => (
-    <Text style={{ color: '#b9f2ff', fontSize: 16, marginVertical: 5 }}>
+    <Text style={{ color: item.isPlayer ? '#0000ff' : '#ff0000', fontSize: 16, marginVertical: 5 }}>
       Rodada {item.rodada}: {item.atacante || 'Jogador'} rolou {item.dado} = {item.valor} ({item.tipo} - {item.acao || 'Ação'})
     </Text>
   );
@@ -452,10 +412,10 @@ export default function TelaArenaBatalha({ route }) {
     <>
       <Text style={styles.title}><FontAwesome5 name="fort-awesome" size={20} color="#b9f2ff" /> Arena de Batalha</Text>
       {todosDerrotadosInimigos && (
-        <Text style={styles.vitoria}><FontAwesome5 name="trophy" size={20} color="#00ff00" /> Você venceu!</Text>
+        <Text style={styles.vitoria}><FontAwesome5 name="crown" size={20} color="#00ff00" /> Você venceu!</Text>
       )}
       {todosDerrotadosMeus && (
-        <Text style={styles.derrota}><FontAwesome5 name="skull" size={20} color="#ff3b3b" /> Você perdeu...</Text>
+        <Text style={styles.derrota}><FontAwesome5 name="skull-crossbones" size={20} color="#ff3b3b" /> Você perdeu...</Text>
       )}
       {mensagemErro && (
         <View style={{
@@ -468,6 +428,17 @@ export default function TelaArenaBatalha({ route }) {
           <Text style={{ color: '#fff', fontSize: 16, textAlign: 'center' }}>
             {mensagemErro}
           </Text>
+        </View>
+      )}
+      {isRolling && (
+        <View style={{ alignItems: 'center', marginVertical: 10 }}>
+          <LottieView
+            source={require('../assets/json/dado.json')}
+            autoPlay
+            loop={false}
+            style={{ width: 100, height: 100 }}
+          />
+          <Text style={{ color: '#b9f2ff', fontSize: 18, marginTop: 10 }}>Lançando dado...</Text>
         </View>
       )}
 
@@ -492,26 +463,6 @@ export default function TelaArenaBatalha({ route }) {
       />
 
       <View style={styles.mensagensContainer}>
-        {rolandoAtaque && (
-          <RolagemDado
-            dado="1d20"
-            onComplete={(valor) => setD20Roll(valor)}
-            tipo="Ataque"
-            atacante={meusMonstros.find(m => m.id === selecionado)?.name || 'Jogador'}
-            acao={acaoSelecionada || 'Ataque'}
-          />
-        )}
-        {rolandoDano && (
-          <RolagemDado
-            dado={acaoSelecionada
-              ? (monstroSelecionado?.actions.find(a => a.name === acaoSelecionada)?.damage_dice || '1d6')
-              : '1d6'}
-            onComplete={(valor) => setDanoRoll(valor)}
-            tipo="Dano"
-            atacante={meusMonstros.find(m => m.id === selecionado)?.name || 'Jogador'}
-            acao={acaoSelecionada || 'Dano'}
-          />
-        )}
         <Text style={{ color: '#b9f2ff', fontSize: 18, fontWeight: 'bold', marginVertical: 10 }}>
           Rolagens
         </Text>
@@ -519,7 +470,6 @@ export default function TelaArenaBatalha({ route }) {
           data={rolagens}
           keyExtractor={(item) => item.id}
           renderItem={renderRolagem}
-          style={{ maxHeight: 150 }}
           ListEmptyComponent={<Text style={styles.acaoText}>Nenhuma rolagem realizada</Text>}
         />
       </View>
@@ -548,8 +498,19 @@ export default function TelaArenaBatalha({ route }) {
           setSelecionado(null);
         }}
       >
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
+        <View style={{
+          flex: 1,
+          justifyContent: 'center',
+          alignItems: 'center',
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        }}>
+          <View style={{
+            backgroundColor: '#222',
+            borderRadius: 10,
+            padding: 20,
+            width: '80%',
+            maxHeight: '80%',
+          }}>
             <Text style={styles.modalTitle}>Escolha uma Ação</Text>
             <FlatList
               data={monstroSelecionado?.actions || []}
@@ -566,6 +527,24 @@ export default function TelaArenaBatalha({ route }) {
               }}
             >
               <Text style={styles.closeButtonText}>Fechar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+      <Modal
+        transparent
+        animationType="fade"
+        visible={errorModalVisible}
+        onRequestClose={() => setErrorModalVisible(false)}
+      >
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0, 0, 0, 0.5)' }}>
+          <View style={{ backgroundColor: '#222', borderRadius: 10, padding: 20, width: '80%' }}>
+            <Text style={{ color: '#fff', fontSize: 18, marginBottom: 20 }}>Nenhum inimigo selecionado</Text>
+            <TouchableOpacity
+              style={{ backgroundColor: '#b9f2ff', padding: 10, borderRadius: 5 }}
+              onPress={() => setErrorModalVisible(false)}
+            >
+              <Text style={{ color: '#000', fontSize: 16 }}>OK</Text>
             </TouchableOpacity>
           </View>
         </View>

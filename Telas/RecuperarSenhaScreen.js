@@ -2,19 +2,23 @@ import React, { useState } from 'react';
 import {
   View,
   Text,
-  TextInput,
   TouchableOpacity,
   Modal,
   Pressable,
+  StatusBar,
 } from 'react-native';
+import {
+  TextInput as PaperInput,
+  Provider as PaperProvider,
+} from 'react-native-paper';
+import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import { sendPasswordResetEmail } from 'firebase/auth';
 import { auth } from '../Firebase';
-import estilos from '../estilos/login'; // reutilizando estilo do login
+import estilos from '../estilos/login';
 
 export default function RecuperarSenhaScreen({ navigation }) {
   const [email, setEmail] = useState('');
 
-  // Modal de erro/feedback
   const [modalVisible, setModalVisible] = useState(false);
   const [tituloModal, setTituloModal] = useState('');
   const [mensagemModal, setMensagemModal] = useState('');
@@ -42,7 +46,7 @@ export default function RecuperarSenhaScreen({ navigation }) {
 
   const handleResetPassword = () => {
     if (!email) {
-      exibirModal('Erro Arcano', 'Por favor, insira seu e-mail para reenviar as runas.');
+      exibirModal('Erro Arcano', 'Por favor, insira seu e‑mail para reenviar as runas.');
       return;
     }
 
@@ -54,97 +58,74 @@ export default function RecuperarSenhaScreen({ navigation }) {
         );
       })
       .catch((error) => {
-        const mensagemTematica = traduzirErroFirebase(error.code);
-        exibirModal('Erro Arcano', mensagemTematica);
+        exibirModal('Erro Arcano', traduzirErroFirebase(error.code));
       });
   };
 
   return (
-    <View style={estilos.container}>
-      <Text style={estilos.title}>Recuperar Senha</Text>
+    <PaperProvider>
+      <StatusBar />
+      <View style={estilos.container}>
+        <Text style={estilos.title}>Recuperar Senha</Text>
 
-      <TextInput
-        placeholder="Digite seu e-mail"
-        placeholderTextColor="#ccc"
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
-        autoCapitalize="none"
-        style={estilos.input}
-      />
+        {/* Input de e-mail com ícone */}
+        <PaperInput
+          label="E‑mail arcano"
+          mode="outlined"
+          value={email}
+          onChangeText={setEmail}
+          placeholder="seu@email.com"
+          placeholderTextColor="#ccc"
+          keyboardType="email-address"
+          autoCapitalize="none"
+          right={
+            <PaperInput.Icon
+              icon={() => (
+                <FontAwesome5
+                  name={  'envelope'}
+                  size={20}
+                  color="#666"
+                />
+              )}
+            
+            />
+          }
+          style={{ marginBottom: 20 }}
+        />
 
-      <TouchableOpacity onPress={handleResetPassword} style={estilos.button}>
-        <Text style={estilos.buttonText}>ENVIAR</Text>
-      </TouchableOpacity>
+        {/* Botões */}
+        <TouchableOpacity style={estilos.button} onPress={handleResetPassword}>
+          <Text style={estilos.buttonText}>ENVIAR</Text>
+        </TouchableOpacity>
 
-      <TouchableOpacity onPress={() => navigation.goBack()} style={[estilos.button, {backgroundColor: '#333', marginTop: 10}]}>
-        <Text style={estilos.buttonText}>VOLTAR</Text>
-      </TouchableOpacity>
-
-      {/* Modal de erro/feedback */}
-      <Modal
-        transparent
-        animationType="fade"
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <View
-          style={{
-            flex: 1,
-            backgroundColor: 'rgba(0,0,0,0.85)',
-            justifyContent: 'center',
-            alignItems: 'center',
-          }}
+        <TouchableOpacity
+          onPress={() => navigation.goBack()}
+          style={[estilos.button, { backgroundColor: '#333', marginTop: 10 }]}
         >
-          <View
-            style={{
-              backgroundColor: '#1a001a',
-              borderRadius: 15,
-              padding: 25,
-              width: '80%',
-              borderWidth: 1,
-              borderColor: '#9400d3',
-              shadowColor: '#9400d3',
-              shadowOpacity: 0.9,
-              shadowRadius: 10,
-              elevation: 10,
-            }}
-          >
-            <Text
-              style={{
-                color: '#fff',
-                fontSize: 18,
-                marginBottom: 20,
-                textAlign: 'center',
-              }}
-            >
-              {tituloModal}
-            </Text>
-            <Text
-              style={{
-                color: '#ccc',
-                fontSize: 14,
-                textAlign: 'center',
-                marginBottom: 20,
-              }}
-            >
-              {mensagemModal}
-            </Text>
-            <Pressable
-              onPress={() => setModalVisible(false)}
-              style={{
-                backgroundColor: '#4b0082',
-                paddingVertical: 10,
-                paddingHorizontal: 20,
-                borderRadius: 8,
-                alignSelf: 'center',
-              }}
-            >
-              <Text style={{ color: '#fff' }}>Fechar o portal</Text>
-            </Pressable>
+          <Text style={estilos.buttonText}>VOLTAR</Text>
+        </TouchableOpacity>
+
+        {/* Modal de erro/feedback */}
+        <Modal
+          transparent
+          animationType="fade"
+          visible={modalVisible}
+          onRequestClose={() => setModalVisible(false)}
+        >
+          <View style={estilos.modalOverlay}>
+            <View style={estilos.modalBox}>
+              <Text style={estilos.modalTitle}>{tituloModal}</Text>
+              <Text style={estilos.modalMessage}>{mensagemModal}</Text>
+              <Pressable
+                onPress={() => setModalVisible(false)}
+                style={estilos.modalButton}
+              >
+                <Text style={{ color: '#fff' }}>Fechar o portal</Text>
+              </Pressable>
+            </View>
           </View>
-        </View>
-      </Modal>
-    </View>
+        </Modal>
+      </View>
+    </PaperProvider>
   );
 }

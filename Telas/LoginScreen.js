@@ -1,13 +1,7 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  Modal,
-  StatusBar,
-  Pressable,
-} from 'react-native';
+import { View, Text, TouchableOpacity, Modal, StatusBar, Pressable } from 'react-native';
+import { TextInput as PaperInput, Provider as PaperProvider } from 'react-native-paper';
+import FontAwesome5 from '@expo/vector-icons/FontAwesome5';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../Firebase';
 import estilos from '../estilos/login';
@@ -15,8 +9,9 @@ import estilos from '../estilos/login';
 export default function LoginScreen({ navigation }) {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
+  const [senhaVisivel, setSenhaVisivel] = useState(false);
 
-  // Modal de erro temático
+  // Controle do modal de erro
   const [modalVisible, setModalVisible] = useState(false);
   const [mensagemErro, setMensagemErro] = useState('');
   const [tituloErro, setTituloErro] = useState('');
@@ -48,131 +43,125 @@ export default function LoginScreen({ navigation }) {
 
   const handleLogin = () => {
     if (!email || !senha) {
-      exibirModal('Erro Arcano', 'Preencha o nome de necromante e a senha arcana para invocar o login.');
+      exibirModal(
+        'Erro Arcano',
+        'Preencha o nome de necromante e a senha arcana para invocar o login.'
+      );
       return;
     }
 
     signInWithEmailAndPassword(auth, email, senha)
       .then((userCredential) => {
         const user = userCredential.user;
-        exibirModal('Invocação Concluída', `Bem-vindo, necromante ${user.email}! As sombras te aguardam.`);
+        exibirModal(
+          'Invocação Concluída',
+          `Bem-vindo, necromante ${user.email}! As sombras te aguardam.`
+        );
       })
       .catch((error) => {
-        const mensagemTematica = traduzirErroFirebase(error.code);
-        exibirModal('Erro Arcano', mensagemTematica);
+        exibirModal('Erro Arcano', traduzirErroFirebase(error.code));
       });
   };
 
-  const handleForgotPassword = () => {
-    navigation.navigate('Recuperando');
-  };
+  const handleForgotPassword = () => navigation.navigate('Recuperando');
+  const handleRegister = () => navigation.navigate('SignUp');
 
-  const handleRegister = () => {
-    navigation.navigate('SignUp');
+  // Trata inserção/deleção de caracteres sem considerar as runas
+  const handleSenhaChange = (text) => {
+    if (senhaVisivel) {
+      setSenha(text);
+    } else {
+      if (text.length > senha.length) {
+        setSenha((s) => s + text.charAt(text.length - 1));
+      } else if (text.length < senha.length) {
+        setSenha((s) => s.slice(0, text.length));
+      }
+    }
   };
 
   return (
-    <View style={estilos.container}>
-      <StatusBar></StatusBar>
-      <Text style={estilos.title}>Círculo da Necromancia</Text>
+    <PaperProvider>
+      <View style={estilos.container}>
+        <StatusBar />
 
-      <TextInput
-        placeholder="Nome de necromante ou email"
-        placeholderTextColor="#666"
-        onChangeText={setEmail}
-        value={email}
-        keyboardType="email-address"
-        autoCapitalize="none"
-        style={estilos.input}
-      />
-      <TextInput
-        placeholder="Senha arcana"
-        placeholderTextColor="#666"
-        secureTextEntry
-        onChangeText={setSenha}
-        value={senha}
-        style={estilos.input}
-      />
+        <Text style={estilos.title}>Círculo da Necromancia</Text>
 
-      <TouchableOpacity onPress={handleForgotPassword} style={estilos.forgotPassword}>
-        <Text style={estilos.forgotPasswordText}>Perdeu sua senha arcana?</Text>
-      </TouchableOpacity>
+        {/* Email */}
+        <PaperInput
+          label="Nome de necromante ou email"
+          mode="outlined"
+          placeholder="seu@email.com"
+          placeholderTextColor="#666"
+          value={email}
+          onChangeText={setEmail}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          style={{ marginBottom: 16 }}
+        />
 
-      <TouchableOpacity style={estilos.button} onPress={handleLogin}>
-        <Text style={estilos.buttonText}>INVOCAR LOGIN</Text>
-      </TouchableOpacity>
+        {/* Senha com runas */}
+        <PaperInput
+  label="Senha arcana"
+  mode="outlined"
+  value={senhaVisivel ? senha : 'ᛟ'.repeat(senha.length)}
+  onChangeText={handleSenhaChange}
+     placeholder="Sua senha arcana"
+          placeholderTextColor="#666"
+  secureTextEntry={false} // a gente controla a máscara manualmente
+  right={
+    <PaperInput.Icon
+      icon={() => (
+        <FontAwesome5
+          name={senhaVisivel ? 'eye' : 'eye-slash'}
+          size={20}
+          color="#666"
+        />
+      )}
+      onPress={() => setSenhaVisivel(v => !v)}
+    />
+  }
+/>
 
-      <View style={estilos.registerContainer}>
-        <Text style={estilos.registerText}>Ainda não é um necromante?</Text>
-        <TouchableOpacity onPress={handleRegister}>
-          <Text style={estilos.registerLink}>Junte-se ao círculo</Text>
+
+        {/* Esqueci senha */}
+        <TouchableOpacity onPress={handleForgotPassword} style={estilos.forgotPassword}>
+          <Text style={estilos.forgotPasswordText}>Perdeu sua senha arcana?</Text>
         </TouchableOpacity>
-      </View>
 
-      {/* Modal de erro/feedback */}
-      <Modal
-        transparent
-        animationType="fade"
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <View
-          style={{
-            flex: 1,
-            backgroundColor: 'rgba(0,0,0,0.85)',
-            justifyContent: 'center',
-            alignItems: 'center',
-          }}
-        >
-          <View
-            style={{
-              backgroundColor: '#1a001a',
-              borderRadius: 15,
-              padding: 25,
-              width: '80%',
-              borderWidth: 1,
-              borderColor: '#9400d3',
-              shadowColor: '#9400d3',
-              shadowOpacity: 0.9,
-              shadowRadius: 10,
-              elevation: 10,
-            }}
-          >
-            <Text
-              style={{
-                color: '#fff',
-                fontSize: 18,
-                marginBottom: 20,
-                textAlign: 'center',
-              }}
-            >
-              {tituloErro}
-            </Text>
-            <Text
-              style={{
-                color: '#ccc',
-                fontSize: 14,
-                textAlign: 'center',
-                marginBottom: 20,
-              }}
-            >
-              {mensagemErro}
-            </Text>
-            <Pressable
-              onPress={() => setModalVisible(false)}
-              style={{
-                backgroundColor: '#4b0082',
-                paddingVertical: 10,
-                paddingHorizontal: 20,
-                borderRadius: 8,
-                alignSelf: 'center',
-              }}
-            >
-              <Text style={{ color: '#fff' }}>Fechar o portal</Text>
-            </Pressable>
-          </View>
+        {/* Botão de login */}
+        <TouchableOpacity style={estilos.button} onPress={handleLogin}>
+          <Text style={estilos.buttonText}>INVOCAR LOGIN</Text>
+        </TouchableOpacity>
+
+        {/* Registro */}
+        <View style={estilos.registerContainer}>
+          <Text style={estilos.registerText}>Ainda não é um necromante?</Text>
+          <TouchableOpacity onPress={handleRegister}>
+            <Text style={estilos.registerLink}>Junte-se ao círculo</Text>
+          </TouchableOpacity>
         </View>
-      </Modal>
-    </View>
+
+        {/* Modal de erro/feedback */}
+        <Modal
+          transparent
+          animationType="fade"
+          visible={modalVisible}
+          onRequestClose={() => setModalVisible(false)}
+        >
+          <View style={estilos.modalOverlay}>
+            <View style={estilos.modalBox}>
+              <Text style={estilos.modalTitle}>{tituloErro}</Text>
+              <Text style={estilos.modalMessage}>{mensagemErro}</Text>
+              <Pressable
+                onPress={() => setModalVisible(false)}
+                style={estilos.modalButton}
+              >
+                <Text style={{ color: '#fff' }}>Fechar o portal</Text>
+              </Pressable>
+            </View>
+          </View>
+        </Modal>
+      </View>
+    </PaperProvider>
   );
 }

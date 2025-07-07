@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import {
   View,
-  TextInput,
   TouchableOpacity,
   Text,
   Modal,
   Pressable,
 } from 'react-native';
+import { TextInput as PaperInput, Provider as PaperProvider } from 'react-native-paper';
 import Icon from 'react-native-vector-icons/FontAwesome5';
 import { getAuth, createUserWithEmailAndPassword } from 'firebase/auth';
 import { getFirestore, doc, setDoc } from 'firebase/firestore';
@@ -14,6 +14,7 @@ import estilos from '../estilos/login'; // Ajuste o caminho conforme necessário
 
 export default function SignUpScreen({ navigation }) {
   const [email, setEmail] = useState('');
+  const [nome, setNome] = useState('');
   const [senha, setSenha] = useState('');
   const [confirmarSenha, setConfirmarSenha] = useState('');
 
@@ -52,13 +53,13 @@ export default function SignUpScreen({ navigation }) {
   };
 
   const criarConta = async () => {
-    if (!email || !senha || !confirmarSenha) {
+    if (!email || !nome || !senha || !confirmarSenha) {
       exibirModal('Erro Arcano', 'Preencha todos os campos para invocar um novo necromante!');
       return;
     }
 
     if (senha.length < 6) {
-      exibirModal('Proteção Mágica', 'Sua senha mística deve ter no mínimo 6 runas.');
+      exibirModal('Proteção Mágica', 'Sua senha arcana deve ter no mínimo 6 runas.');
       return;
     }
 
@@ -72,129 +73,120 @@ export default function SignUpScreen({ navigation }) {
       const user = userCredential.user;
 
       const userDocRef = doc(db, 'usuarios', user.uid);
-      await setDoc(userDocRef, { email: user.email }, { merge: true });
+      await setDoc(
+        userDocRef,
+        {
+          email: user.email,
+          nome: nome,
+        },
+        { merge: true }
+      );
 
       exibirModal('Invocação Concluída', 'Novo necromante registrado no Círculo da Necromancia!');
     } catch (error) {
-      const mensagemTematica = traduzirErroFirebase(error.code);
-      exibirModal('Erro Arcano', mensagemTematica);
+      exibirModal('Erro Arcano', traduzirErroFirebase(error.code));
     }
   };
 
   return (
-    <View style={estilos.container}>
-      <Text style={estilos.title}>Registrar Novo Necromante</Text>
+    <PaperProvider>
+      <View style={estilos.container}>
+        <Text style={estilos.title}>Registrar Novo Necromante</Text>
 
-      <TextInput
-        style={estilos.input}
-        placeholder="E-mail arcano"
-        placeholderTextColor="#b0b0b0"
-        value={email}
-        onChangeText={setEmail}
-        keyboardType="email-address"
-        autoCapitalize="none"
-      />
-      <TextInput
-        style={estilos.input}
-        placeholder="Senha mística"
-        placeholderTextColor="#b0b0b0"
-        value={senha}
-        onChangeText={setSenha}
-        secureTextEntry
-      />
-      <TextInput
-        style={estilos.input}
-        placeholder="Confirmar senha mística"
-        placeholderTextColor="#b0b0b0"
-        value={confirmarSenha}
-        onChangeText={setConfirmarSenha}
-        secureTextEntry
-      />
+        {/* E‑mail arcano */}
+        <PaperInput
+          label="E‑mail arcano"
+          mode="outlined"
+          value={email}
+          onChangeText={setEmail}
+          keyboardType="email-address"
+             placeholder="seu@email.com"
+          placeholderTextColor="#666"
+          autoCapitalize="none"
+          left={props => <PaperInput.Icon {...props} name={() => <Icon name="envelope" size={18} color="#666" />} />}
+          style={{ marginBottom: 12 }}
+        />
 
-      <TouchableOpacity style={estilos.button} onPress={criarConta}>
-        <Text style={estilos.buttonText}>CRIAR NECROMANTE</Text>
-      </TouchableOpacity>
+        {/* Nome místico */}
+        <PaperInput
+          label="Nome místico"
+          mode="outlined"
+             placeholder="Nome místico"
+          placeholderTextColor="#666"
+          value={nome}
+          onChangeText={setNome}
+          autoCapitalize="words"
+          left={props => <PaperInput.Icon {...props} name={() => <Icon name="user" size={18} color="#666" />} />}
+          style={{ marginBottom: 12 }}
+        />
 
-      <View style={estilos.registerContainer}>
-        <Text style={estilos.registerText}>Já possui um círculo?</Text>
-        <TouchableOpacity onPress={() => navigation.navigate('Login')}>
-          <Text style={estilos.registerLink}>Entrar</Text>
+        {/* Senha arcana */}
+        <PaperInput
+          label="Senha arcana"
+          mode="outlined"
+             placeholder="Sua senha arcana"
+          placeholderTextColor="#666"
+          secureTextEntry
+          value={senha}
+          onChangeText={setSenha}
+          left={props => <PaperInput.Icon {...props} name={() => <Icon name="lock" size={18} color="#666" />} />}
+          style={{ marginBottom: 12 }}
+        />
+
+        {/* Confirmar senha */}
+        <PaperInput
+          label="Confirmar senha"
+          mode="outlined"
+             placeholder="Repita seu nome místico"
+          placeholderTextColor="#666"
+          secureTextEntry
+          value={confirmarSenha}
+          onChangeText={setConfirmarSenha}
+          left={props => <PaperInput.Icon {...props} name={() => <Icon name="lock" size={18} color="#666" />} />}
+          style={{ marginBottom: 20 }}
+        />
+
+        {/* Botão de criação */}
+        <TouchableOpacity style={estilos.button} onPress={criarConta}>
+          <Text style={estilos.buttonText}>CRIAR NECROMANTE</Text>
         </TouchableOpacity>
-      </View>
 
-      {/* Modal de erro/feedback */}
-      <Modal
-        transparent
-        animationType="fade"
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
-      >
-        <View
-          style={{
-            flex: 1,
-            backgroundColor: 'rgba(0,0,0,0.85)',
-            justifyContent: 'center',
-            alignItems: 'center',
-          }}
-        >
-          <View
-            style={{
-              backgroundColor: '#1a001a',
-              borderRadius: 15,
-              padding: 25,
-              width: '80%',
-              borderWidth: 1,
-              borderColor: '#9400d3',
-              shadowColor: '#9400d3',
-              shadowOpacity: 0.9,
-              shadowRadius: 10,
-              elevation: 10,
-            }}
-          >
-            <Text
-              style={{
-                color: '#fff',
-                fontSize: 18,
-                marginBottom: 20,
-                textAlign: 'center',
-              }}
-            >
-              {tituloModal}
-            </Text>
-            <Text
-              style={{
-                color: '#ccc',
-                fontSize: 14,
-                textAlign: 'center',
-                marginBottom: 20,
-              }}
-            >
-              {typeof mensagemModal === 'string' ? mensagemModal : mensagemModal}
-            </Text>
-            <Pressable
-              onPress={() => {
-                setModalVisible(false);
-                if (tituloModal === 'Invocação Concluída') {
-                  navigation.navigate('Login');
-                } else if (typeof mensagemModal === 'object' && mensagemModal.props.children.some(child => 
-                  typeof child === 'object' && child.props.style?.color === '#b9f2ff'
-                )) {
-                  navigation.navigate('Login');
-                }
-              }}
-              style={{
-                backgroundColor: '#4b0082',
-                paddingVertical: 10,
-                paddingHorizontal: 20,
-                borderRadius: 8,
-                alignSelf: 'center',
-              }}
-            >
-              <Text style={{ color: '#fff' }}>Fechar o portal</Text>
-            </Pressable>
-          </View>
+        {/* Link para login */}
+        <View style={estilos.registerContainer}>
+          <Text style={estilos.registerText}>Já possui um círculo?</Text>
+          <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+            <Text style={estilos.registerLink}>Entrar</Text>
+          </TouchableOpacity>
         </View>
-      </Modal>
-    </View>
+
+        {/* Modal de erro/feedback */}
+        <Modal
+          transparent
+          animationType="fade"
+          visible={modalVisible}
+          onRequestClose={() => setModalVisible(false)}
+        >
+          <View style={estilos.modalOverlay}>
+            <View style={estilos.modalBox}>
+              <Text style={estilos.modalTitle}>{tituloModal}</Text>
+              <Text style={estilos.modalMessage}>
+                {typeof mensagemModal === 'string' ? mensagemModal : mensagemModal}
+              </Text>
+              <Pressable
+                onPress={() => {
+                  setModalVisible(false);
+                  if (tituloModal === 'Invocação Concluída') {
+                    navigation.navigate('Login');
+                  }
+                }}
+                style={estilos.modalButton}
+              >
+                <Text style={{ color: '#fff' }}>Fechar o portal</Text>
+              </Pressable>
+            </View>
+          </View>
+        </Modal>
+      </View>
+    </PaperProvider>
   );
 }

@@ -1,29 +1,38 @@
-{
-  "expo": {
+{  "expo": {
     "name": "RPG Codex",
     "slug": "banco",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "icon": "./assets/img/medieval.png",
+    "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/img/medieval.png",
       "resizeMode": "contain",
-      "backgroundColor": "#000"
+      "backgroundColor": "#000000"
     },
     "ios": {
       "supportsTablet": true
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#000"
+        "foregroundImage": "./assets/img/medieval.png",
+        "backgroundColor": "#000000"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.micheljean.rpgcodex"
+    },
+    "androidStatusBar": {
+      "barStyle": "light-content",
+      "backgroundColor": "#000000"
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/img/medieval.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "bc4e700d-d27a-46db-9db8-c75ebe29ab2a"
+      }
     }
   }
 }

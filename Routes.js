@@ -5,6 +5,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { FontAwesome5 } from '@expo/vector-icons';
 import { auth } from './Firebase';
+import { useFonts } from 'expo-font';
 
 // Telas
 import SplashScreen from './Telas/SplashScreen';
@@ -26,6 +27,11 @@ export default function Routes() {
   const [authChecada, setAuthChecada] = useState(false);
   const [splashJaMostrada, setSplashJaMostrada] = useState(false);
 
+  // Carregar a fonte MedievalSharp a partir do arquivo local
+  const [fontsLoaded] = useFonts({
+    'MedievalSharp-Regular': require('./assets/fonts/MedievalSharp-Regular.ttf'),
+  });
+
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged((usuario) => {
       setUsuarioLogado(!!usuario);
@@ -34,11 +40,20 @@ export default function Routes() {
     return unsubscribe;
   }, []);
 
+  // Se as fontes não estiverem carregadas, não renderizar
+  if (!fontsLoaded) {
+    return null;
+  }
+
   const estiloHeader = (titulo) => ({
     title: titulo,
     headerStyle: { backgroundColor: '#0d0d0d' },
     headerTintColor: '#b9f2ff',
-    headerTitleStyle: { fontWeight: 'bold' },
+    headerTitleStyle: { 
+      fontFamily: 'MedievalSharp-Regular',
+      fontSize: 18,
+      fontWeight: 'normal',
+    },
     headerBackTitleVisible: false,
   });
 
@@ -52,6 +67,14 @@ export default function Routes() {
           tabBarActiveTintColor: '#b9f2ff',
           tabBarInactiveTintColor: '#888',
           headerLeft: () => null,
+          headerTitleStyle: { 
+            fontFamily: 'MedievalSharp-Regular',
+            fontSize: 18,
+          },
+          tabBarLabelStyle: { 
+            fontFamily: 'MedievalSharp-Regular',
+            fontSize: 12,
+          },
         }}
       >
         <Tab.Screen
@@ -137,10 +160,10 @@ export default function Routes() {
                   <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                     <FontAwesome5 name="fort-awesome" size={20} color="purple" />
                     <Text style={{
+                      fontFamily: 'MedievalSharp-Regular',
                       color: '#b9f2ff',
-                      fontWeight: 'bold',
+                      fontSize: 16,
                       marginLeft: 8,
-                      fontSize: 16
                     }}>
                       Arena de Batalha
                     </Text>
@@ -153,24 +176,36 @@ export default function Routes() {
           </>
         ) : (
           <>
-            <Stack.Screen
-              name="Login"
-              component={LoginScreen}
-              options={estiloHeader('Círculo da Necromancia')}
-            />
-            <Stack.Screen
-              name="SignUp"
-              component={SignUpScreen}
-              options={estiloHeader('Juntar-se ao Círculo')}
-            />
-            <Stack.Screen
-              name="Recuperando"
-              component={RecuperarSenhaScreen}
-              options={estiloHeader('Recuperar Senha Arcana')}
-            />
+          <Stack.Screen
+  name="Login"
+  component={LoginScreen}
+  options={{
+    ...estiloHeader('Círculo da Necromancia'),
+    headerBackVisible: false, // oculta a seta de voltar
+  }}
+/>
+<Stack.Screen
+  name="SignUp"
+  component={SignUpScreen}
+  options={{
+    ...estiloHeader('Juntar-se ao Círculo'),
+    headerBackVisible: false,
+  }}
+/>
+<Stack.Screen
+  name="Recuperando"
+  component={RecuperarSenhaScreen}
+  options={{
+    ...estiloHeader('Recuperar Senha Arcana'),
+    headerBackVisible: false,
+  }}
+/>
+
+
           </>
         )}
       </Stack.Navigator>
     </NavigationContainer>
   );
 }
+

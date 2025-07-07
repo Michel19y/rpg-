@@ -16,6 +16,9 @@ fontFamily: 'MedievalSharp-Regular',
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 2
   },
+  loadingIndicator: {
+    backgroundColor:'red',
+  },
   subtitulo: {
     color: '#b9f2ff',
     fontSize: 22,
@@ -25,6 +28,51 @@ fontFamily: 'MedievalSharp-Regular',
     textShadowColor: '#000',
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 2
+  },
+  card: {
+    backgroundColor: '#1a1a2e',
+    borderRadius: 10,
+    padding: 10,
+    marginHorizontal: 5,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+  },
+  cardSelecionado: {
+    borderColor: '#b9f2ff',
+    borderWidth: 2,
+  },
+  imageContainer: {
+    position: 'relative', // Permite posicionar o ActivityIndicator absolutamente
+    width: '100%',
+    height: 150, // Ajuste conforme o tamanho desejado para a imagem
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  imagem: {
+    width: '100%',
+    height: '100%',
+  },
+  
+  loadingIndicator: {
+    position: 'absolute', // Centraliza no container sem afetar o layout
+    zIndex: 1, // Garante que o indicador fique acima da imagem
+  },
+  nome: {
+    color: '#fff',
+    fontSize: 16,
+    fontFamily: 'MedievalSharp-Regular',
+    textAlign: 'center',
+    marginTop: 5,
+  },
+  stat: {
+    color: '#b9f2ff',
+    fontSize: 14,
+    textAlign: 'center',
   },
   icon: {
     position: 'absolute',
