@@ -242,7 +242,7 @@ export default function SobreScreen() {
               Deseja mesmo sair do RPG Codex?
             </Text>
 
-            {/* Volume Control */}
+            
             <View style={{ marginBottom: 20 }}>
               <Text style={{ color: '#e0b3ff', fontSize: 16, marginBottom: 10 }}>
                 Volume da Música

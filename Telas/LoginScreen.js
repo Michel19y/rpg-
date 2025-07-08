@@ -141,26 +141,69 @@ export default function LoginScreen({ navigation }) {
           </TouchableOpacity>
         </View>
 
-        {/* Modal de erro/feedback */}
         <Modal
-          transparent
-          animationType="fade"
-          visible={modalVisible}
-          onRequestClose={() => setModalVisible(false)}
-        >
-          <View style={estilos.modalOverlay}>
-            <View style={estilos.modalBox}>
-              <Text style={estilos.modalTitle}>{tituloErro}</Text>
-              <Text style={estilos.modalMessage}>{mensagemErro}</Text>
-              <Pressable
-                onPress={() => setModalVisible(false)}
-                style={estilos.modalButton}
-              >
-                <Text style={{ color: '#fff' }}>Fechar o portal</Text>
-              </Pressable>
-            </View>
-          </View>
-        </Modal>
+  transparent
+  animationType="fade"
+  visible={modalVisible}
+  onRequestClose={() => setModalVisible(false)}
+>
+  <View
+    style={{
+      flex: 1,
+      backgroundColor: 'rgba(0,0,0,0.85)',
+      justifyContent: 'center',
+      alignItems: 'center',
+    }}
+  >
+    <View
+      style={{
+        backgroundColor: '#1a001a',
+        borderRadius: 15,
+        padding: 25,
+        width: '80%',
+        borderWidth: 1,
+        borderColor: '#9400d3',
+        shadowColor: '#9400d3',
+        shadowOpacity: 0.9,
+        shadowRadius: 10,
+        elevation: 10,
+      }}
+    >
+      <Text
+        style={{
+          color: '#fff',
+          fontSize: 18,
+          marginBottom: 20,
+          textAlign: 'center',
+        }}
+      >
+        {tituloErro}
+      </Text>
+      <Text
+        style={{
+          color: '#ccc',
+          fontSize: 14,
+          textAlign: 'center',
+          marginBottom: 20,
+        }}
+      >
+        {mensagemErro}
+      </Text>
+      <Pressable
+        onPress={() => setModalVisible(false)}
+        style={{
+          backgroundColor: '#4b0082',
+          paddingVertical: 10,
+          paddingHorizontal: 20,
+          borderRadius: 8,
+          alignSelf: 'center',
+        }}
+      >
+        <Text style={{ color: '#fff' }}>Fechar o portal</Text>
+      </Pressable>
+    </View>
+  </View>
+</Modal>
       </View>
     </PaperProvider>
   );
