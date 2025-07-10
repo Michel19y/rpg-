@@ -28,11 +28,7 @@
     },
     "web": {
       "favicon": "./assets/img/medieval.png"
-    },
-    "extra": {
-      "eas": {
-        "projectId": "bc4e700d-d27a-46db-9db8-c75ebe29ab2a"
-      }
     }
+
+   }
   }
-}

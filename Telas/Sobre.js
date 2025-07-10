@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -7,84 +7,28 @@ import {
   TouchableOpacity,
   Modal,
   Pressable,
-  Button,
 } from 'react-native';
+import Slider from '@react-native-community/slider';
 import { FontAwesome, MaterialIcons } from '@expo/vector-icons';
 import { getAuth, signOut } from 'firebase/auth';
-import DropDownPicker from 'react-native-dropdown-picker';
-import { Audio } from 'expo-av';
-import Slider from '@react-native-community/slider';
-import styles from '../estilos/sobre'; // Ensure the path is correct
+
+import styles from '../estilos/sobre'; // Caminho correto do estilo
+import { useMusic } from '../context/MusicContext'; // Certifique-se que o caminho está correto
 
 export default function SobreScreen() {
   const [modalVisible, setModalVisible] = useState(false);
-  const [open, setOpen] = useState(false);
-  const [selected, setSelected] = useState(null);
-  const [items, setItems] = useState([]);
-  const [sound, setSound] = useState(null);
-  const [volume, setVolume] = useState(1.0); // Initial volume (max)
+  const { isPlaying, toggleMusic, volume, setMusicVolume } = useMusic();
 
-  // Logout function
   const handleLogout = () => {
     const auth = getAuth();
     signOut(auth)
       .then(() => setModalVisible(false))
-      .catch((error) => console.error('Error signing out:', error));
+      .catch((error) => console.error('Erro ao sair:', error));
   };
-
-  // Set music options
-  useEffect(() => {
-    setItems([
-      {
-        label: 'Tema',
-        value: require('../assets/musicas/tema.mp3'), // Local file
-      },
-      // Add more local music files if desired, e.g.:
-      // { label: 'Teste 2', value: require('../assets/musicas/tste2.mp3') },
-    ]);
-  }, []);
-
-  // Toggle play/stop music
-  const toggleSound = async () => {
-    if (!selected) return;
-    try {
-      if (sound) {
-        await sound.stopAsync();
-        await sound.unloadAsync();
-        setSound(null);
-      } else {
-        const { sound: newSound } = await Audio.Sound.createAsync(selected);
-        setSound(newSound);
-        await newSound.setVolumeAsync(volume);
-        await newSound.playAsync();
-      }
-    } catch (error) {
-      console.error('Error playing/stopping music:', error);
-    }
-  };
-
-  // Adjust music volume
-  const handleVolumeChange = async (newVolume) => {
-    setVolume(newVolume);
-    if (sound) {
-      try {
-        await sound.setVolumeAsync(newVolume);
-      } catch (error) {
-        console.error('Error adjusting volume:', error);
-      }
-    }
-  };
-
-  // Cleanup sound on component unmount
-  useEffect(() => {
-    return () => {
-      if (sound) sound.unloadAsync();
-    };
-  }, [sound]);
 
   return (
     <View style={{ flex: 1 }}>
-      {/* Floating Logout Button */}
+   
       <TouchableOpacity
         onPress={() => setModalVisible(true)}
         style={{
@@ -101,14 +45,11 @@ export default function SobreScreen() {
           elevation: 5,
         }}
       >
-        <MaterialIcons name="logout" size={24} color="#e0b3ff" />
+        <MaterialIcons name="settings" size={24} color="#e0b3ff" />
       </TouchableOpacity>
 
-      {/* Main Content */}
-      <ScrollView
-        style={styles.container}
-        nestedScrollEnabled={true} // Avoid VirtualizedList conflicts
-      >
+      
+      <ScrollView style={styles.container} nestedScrollEnabled={true}>
         <View style={styles.card}>
           <Text style={styles.title}>Sobre o Projeto: RPG Codex</Text>
 
@@ -126,50 +67,25 @@ export default function SobreScreen() {
           </Text>
 
           <Text style={styles.section}>Funcionalidades</Text>
-          <Text style={styles.paragraph}>• Cadastro e login com autenticação Firebase</Text>
-          <Text style={styles.paragraph}>• Escolha de classe e raça das criaturas</Text>
-          <Text style={styles.paragraph}>• Dashboard de personagens com magias</Text>
-          <Text style={styles.paragraph}>• Batalhas contra monstros da D&D API</Text>
-          <Text style={styles.paragraph}>• Ataques com dados reais (ex: atk, Magic evasive)</Text>
-          <Text style={styles.paragraph}>• Estilo visual necromante e dark fantasy</Text>
+          <Text style={styles.paragraph}>• Cadastro e login com Firebase</Text>
+          <Text style={styles.paragraph}>• Escolha de classe e raça</Text>
+          <Text style={styles.paragraph}>• Dashboard com magias</Text>
+          <Text style={styles.paragraph}>• Batalhas com monstros da API D&D</Text>
+          <Text style={styles.paragraph}>• Ataques com dados reais</Text>
+          <Text style={styles.paragraph}>• Estilo necromante e dark fantasy</Text>
 
           <Text style={styles.section}>Tecnologias Utilizadas</Text>
           <Text style={styles.paragraph}>• React Native + Expo</Text>
           <Text style={styles.paragraph}>• Firebase Authentication e Firestore</Text>
-          <Text style={styles.paragraph}>• Consumo da API pública D&D 5e</Text>
-          <Text style={styles.paragraph}>• React para telas auxiliares</Text>
+          <Text style={styles.paragraph}>• API pública D&D 5e</Text>
+          <Text style={styles.paragraph}>• React para navegação</Text>
 
           <Text style={styles.section}>Objetivo</Text>
           <Text style={styles.paragraph}>
-            O objetivo do projeto é aplicar conhecimentos em React Native, integração com APIs REST
-            e banco de dados em nuvem, tudo isso enquanto mergulha o usuário numa ambientação de
-            fantasia sombria e combate mágico.
+            Aplicar conhecimentos de mobile com APIs e nuvem, em um app temático de fantasia sombria.
           </Text>
 
-          {/* Music Section */}
-          <View style={{ zIndex: 1000, marginVertical: 10 }}>
-            <Text style={[styles.section, { marginTop: 20 }]}>Música Tema RPG</Text>
-            <DropDownPicker
-              open={open}
-              setOpen={setOpen}
-              value={selected}
-              setValue={setSelected}
-              items={items}
-              setItems={setItems}
-              placeholder="Selecione uma música"
-              containerStyle={{ marginVertical: 10 }}
-              style={{ backgroundColor: '#1a001a', borderColor: '#9400d3' }}
-              textStyle={{ color: '#fff' }}
-              dropDownContainerStyle={{ backgroundColor: '#1a001a', borderColor: '#9400d3' }}
-            />
-            <Button
-              title={sound ? 'Parar Música' : 'Tocar Música'}
-              onPress={toggleSound}
-              disabled={!selected}
-            />
-          </View>
-
-          {/* Footer */}
+          {/* Rodapé */}
           <View style={styles.footer}>
             <Text style={styles.footerText}>
               Desenvolvido por Michel • IFSC Lages - 2025
@@ -181,9 +97,7 @@ export default function SobreScreen() {
                 <FontAwesome name="github" size={24} color="#b9f2ff" style={styles.icon} />
               </TouchableOpacity>
               <TouchableOpacity
-                onPress={() =>
-                  Linking.openURL('https://www.linkedin.com/in/jean-michel-5a6703360')
-                }
+                onPress={() => Linking.openURL('https://www.linkedin.com/in/jean-michel-5a6703360')}
               >
                 <FontAwesome name="linkedin" size={24} color="#b9f2ff" style={styles.icon} />
               </TouchableOpacity>
@@ -197,7 +111,7 @@ export default function SobreScreen() {
         </View>
       </ScrollView>
 
-      {/* Logout Modal with Volume Control */}
+    
       <Modal
         transparent
         animationType="fade"
@@ -226,40 +140,45 @@ export default function SobreScreen() {
               elevation: 10,
             }}
           >
-            {/* Music Icon */}
             <View style={{ alignItems: 'center', marginBottom: 15 }}>
               <MaterialIcons name="music-note" size={40} color="#e0b3ff" />
             </View>
 
-            <Text
-              style={{
-                color: '#fff',
-                fontSize: 18,
-                marginBottom: 20,
-                textAlign: 'center',
-              }}
-            >
-              Deseja mesmo sair do RPG Codex?
+         
+            <Text style={{ color: '#fff', textAlign: 'center', marginBottom: 10 }}>
+              Música: {isPlaying ? 'Tocando 🎵' : 'Pausada 🔇'}
             </Text>
 
-            
-            <View style={{ marginBottom: 20 }}>
-              <Text style={{ color: '#e0b3ff', fontSize: 16, marginBottom: 10 }}>
-                Volume da Música
+            <Pressable
+              onPress={toggleMusic}
+              style={{
+                backgroundColor: '#4b0082',
+                paddingVertical: 10,
+                marginBottom: 20,
+                borderRadius: 8,
+              }}
+            >
+              <Text style={{ color: '#fff', textAlign: 'center' }}>
+                {isPlaying ? 'Pausar Música' : 'Tocar Música'}
               </Text>
-              <Slider
-                style={{ width: '100%', height: 40 }}
-                minimumValue={0}
-                maximumValue={1}
-                value={volume}
-                onValueChange={handleVolumeChange}
-                minimumTrackTintColor="#9400d3"
-                maximumTrackTintColor="#333"
-                thumbTintColor="#e0b3ff"
-              />
-            </View>
+            </Pressable>
 
-            <View style={{ flexDirection: 'row', justifyContent: 'space-around' }}>
+            {/* Controle de volume */}
+            <Text style={{ color: '#fff', marginBottom: 5, textAlign: 'center' }}>
+              Volume
+            </Text>
+            <Slider
+              style={{ width: '100%', height: 40 }}
+              minimumValue={0}
+              maximumValue={1}
+              value={volume}
+              onValueChange={setMusicVolume}
+              minimumTrackTintColor="#b9f2ff"
+              maximumTrackTintColor="#fff"
+            />
+
+            
+            <View style={{ flexDirection: 'row', justifyContent: 'space-around', marginTop: 25 }}>
               <Pressable
                 onPress={handleLogout}
                 style={{
